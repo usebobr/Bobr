@@ -1,3 +1,6 @@
+# Bobr cache (SQLite, rebuilt from .bobr/ files)
+.bobr/.cache/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
