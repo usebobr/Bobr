@@ -5,15 +5,15 @@ import re
 import time
 
 
-def make_id(title: str) -> str:
-    """Generate a hash-based backlog item ID like BL-a3f1.
+def make_id(title: str, prefix: str = "BL") -> str:
+    """Generate a hash-based ID like BL-a3f1 or CH-b2c4.
 
     Uses sha1(title + nanosecond timestamp) for uniqueness.
-    4 hex chars = 65536 possibilities — sufficient for any project backlog.
+    4 hex chars = 65536 possibilities — sufficient for any project.
     """
     raw = f"{title.strip().lower()}{time.time_ns()}"
     digest = hashlib.sha1(raw.encode()).hexdigest()
-    return f"BL-{digest[:4]}"
+    return f"{prefix}-{digest[:4]}"
 
 
 def slug(title: str) -> str:

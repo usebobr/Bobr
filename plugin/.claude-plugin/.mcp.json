@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "bobr": {
+      "command": "uv",
+      "args": ["run", "--project", "${CLAUDE_PLUGIN_ROOT}/..", "bobr-mcp"],
+      "env": {}
+    }
+  }
+}

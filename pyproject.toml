@@ -13,6 +13,7 @@ dependencies = [
     "typer>=0.12",
     "python-frontmatter>=1.1",
     "rich>=13",
+    "mcp>=1.12",
 ]
 
 [project.optional-dependencies]
@@ -24,6 +25,7 @@ dev = [
 
 [project.scripts]
 bobr = "bobr.cli.main:entry"
+bobr-mcp = "bobr.mcp.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bobr"]

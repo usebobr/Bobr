@@ -2,6 +2,7 @@
 area:
 - cli
 - core
+assignee: claude-code
 blocks:
 - BL-0b36
 - BL-874b
@@ -10,10 +11,10 @@ depends_on:
 - BL-83e4
 id: BL-99cf
 priority: 1
-status: open
+status: done
 title: 'Change workflow: new, continue, verify, archive + delta spec sync'
 type: feature
-updated: '2026-03-18T11:06:06.604545+00:00'
+updated: '2026-03-18T11:43:02.963710+00:00'
 ---
 
 ## Scope

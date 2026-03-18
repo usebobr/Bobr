@@ -4,10 +4,19 @@ This project uses **Bobr** for backlog, requirements, and spec management.
 
 ## Golden Rule
 
-**All tasks, requirements, and specs go through `bobr` CLI. Never create your own TODO files or invent custom formats.**
+**All tasks, requirements, and specs go through `bobr` CLI or MCP tools. Never create your own TODO files or invent custom formats.**
 
 ## When to Use Bobr
 
+Bobr is available via MCP tools (preferred) and CLI. Use whichever is available.
+
+### Via MCP Tools (L3)
+- Need to know what to work on → `get_ready_items`
+- Need to see all tasks → `read_backlog`
+- Need filtered view → `read_backlog(status="open", priority=1)`
+- Need to start working on a task → `claim_item(item_id="BL-xxxx")`
+
+### Via CLI (L2)
 - Need to know what to work on → `uv run bobr backlog ready -o json`
 - Need to see all tasks → `uv run bobr backlog list -o json`
 - Need to start working on a task → `uv run bobr backlog claim <ID>`
@@ -52,6 +61,14 @@ bobr status [-o json]
 bobr validate [-o json]
 bobr init [PATH]
 ```
+
+## MCP Tools Reference
+
+| Tool | Args | Description |
+|------|------|-------------|
+| `read_backlog` | `status?`, `priority?`, `item_type?`, `epic?` | List backlog items with optional filters |
+| `get_ready_items` | — | Items ready for work (open + no blockers) |
+| `claim_item` | `item_id`, `assignee?` | Atomically claim an item (→ in-progress) |
 
 ## Task Lifecycle
 
