@@ -59,6 +59,7 @@ def init(
         config.write_text("schema: bobr\nversion: \"0.1\"\n")
 
     _setup_claude_permissions(root)
+    _setup_claude_instructions(root)
 
     typer.echo(f"Initialized .bobr/ in {root}")
 
@@ -104,6 +105,74 @@ def _setup_claude_permissions(root: Path) -> None:
 
     settings_path.write_text(json.dumps(settings, indent=2) + "\n")
     typer.echo("  Claude Code permissions configured (.claude/settings.json)")
+
+
+_CLAUDE_MD_SECTION_MARKER = "<!-- bobr:instructions -->"
+
+_CLAUDE_MD_TEMPLATE = """\
+{marker}
+# Bobr — Project Management
+
+This project uses **Bobr** for backlog and task management.
+
+## Golden Rule
+
+**All tasks go through `bobr` CLI. Never browse `.bobr/` files directly — always use the CLI.**
+
+## CLI Quick Reference
+
+```
+bobr status                          # Project overview
+bobr backlog list                    # All tasks
+bobr backlog ready                   # Tasks ready for work
+bobr backlog show <ID>               # Task details
+bobr backlog add "Title" -t feature  # Add task
+bobr backlog claim <ID>              # Start working on a task
+bobr backlog edit <ID> --status done # Mark task done
+bobr dep list <ID>                   # Check dependencies
+bobr validate                        # Validate project structure
+```
+
+## Task Lifecycle
+
+1. **Pick a task** — `bobr backlog ready`
+2. **Claim it** — `bobr backlog claim <ID>`
+3. **Do the work** — implement, test, verify
+4. **Mark done** — `bobr backlog edit <ID> --status done`
+5. **Deliver** — commit, push, and/or create a PR
+
+## Conventions
+
+- Priorities: 0 = critical, 1 = high, 2 = medium, 3 = low, 4 = someday
+- Statuses: open → in-progress → in-review → done (or blocked / dropped)
+- Use `-o json` for programmatic parsing, `-o table` for display
+{marker}
+"""
+
+
+def _setup_claude_instructions(root: Path) -> None:
+    """Generate CLAUDE.md with Bobr instructions for AI agents."""
+    claude_md = root / "CLAUDE.md"
+    section = _CLAUDE_MD_TEMPLATE.format(marker=_CLAUDE_MD_SECTION_MARKER)
+
+    if claude_md.exists():
+        content = claude_md.read_text()
+        if _CLAUDE_MD_SECTION_MARKER in content:
+            # Replace existing bobr section
+            import re
+
+            pattern = re.escape(_CLAUDE_MD_SECTION_MARKER) + r".*?" + re.escape(_CLAUDE_MD_SECTION_MARKER)
+            new_content = re.sub(pattern, section.strip(), content, flags=re.DOTALL)
+            claude_md.write_text(new_content)
+            typer.echo("  Updated Bobr section in CLAUDE.md")
+        else:
+            # Append bobr section
+            separator = "\n" if content.endswith("\n") else "\n\n"
+            claude_md.write_text(content + separator + section)
+            typer.echo("  Added Bobr section to CLAUDE.md")
+    else:
+        claude_md.write_text(section)
+        typer.echo("  Created CLAUDE.md with Bobr instructions")
 
 
 @app.command()

@@ -32,6 +32,59 @@ class TestInit:
         assert "Allow AI agents" not in result.output
 
 
+class TestInitClaudeMd:
+    def test_init_creates_claude_md(self, tmp_path, monkeypatch):
+        """GIVEN a directory without CLAUDE.md WHEN bobr init THEN CLAUDE.md is created with Bobr instructions."""
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(app, ["init", str(tmp_path)], input="y\n")
+        assert result.exit_code == 0
+        claude_md = tmp_path / "CLAUDE.md"
+        assert claude_md.exists()
+        content = claude_md.read_text()
+        assert "Golden Rule" in content
+        assert "bobr backlog list" in content
+        assert "Task Lifecycle" in content
+
+    def test_init_appends_to_existing_claude_md(self, tmp_path, monkeypatch):
+        """GIVEN a CLAUDE.md with existing content WHEN bobr init THEN Bobr section is appended without overwriting."""
+        monkeypatch.chdir(tmp_path)
+        claude_md = tmp_path / "CLAUDE.md"
+        claude_md.write_text("# My Project\n\nExisting instructions.\n")
+        result = runner.invoke(app, ["init", str(tmp_path)], input="y\n")
+        assert result.exit_code == 0
+        content = claude_md.read_text()
+        assert content.startswith("# My Project")
+        assert "Existing instructions." in content
+        assert "Golden Rule" in content
+
+    def test_init_updates_existing_bobr_section(self, tmp_path, monkeypatch):
+        """GIVEN a CLAUDE.md with old Bobr section WHEN bobr init again THEN section is replaced, not duplicated."""
+        monkeypatch.chdir(tmp_path)
+        runner.invoke(app, ["init", str(tmp_path)], input="y\n")
+        # Run init again
+        result = runner.invoke(app, ["init", str(tmp_path)])
+        assert result.exit_code == 0
+        content = (tmp_path / "CLAUDE.md").read_text()
+        assert content.count("Golden Rule") == 1
+
+    def test_init_preserves_content_around_bobr_section(self, tmp_path, monkeypatch):
+        """GIVEN a CLAUDE.md with content before and after Bobr section WHEN bobr init THEN surrounding content preserved."""
+        monkeypatch.chdir(tmp_path)
+        from bobr.cli.main import _CLAUDE_MD_SECTION_MARKER
+
+        claude_md = tmp_path / "CLAUDE.md"
+        claude_md.write_text(
+            f"# Header\n\n{_CLAUDE_MD_SECTION_MARKER}\nold bobr stuff\n{_CLAUDE_MD_SECTION_MARKER}\n\n# Footer\n"
+        )
+        result = runner.invoke(app, ["init", str(tmp_path)], input="y\n")
+        assert result.exit_code == 0
+        content = claude_md.read_text()
+        assert "# Header" in content
+        assert "# Footer" in content
+        assert "old bobr stuff" not in content
+        assert "Golden Rule" in content
+
+
 class TestBacklogAdd:
     def test_add_creates_file(self, bobr_repo, monkeypatch):
         """GIVEN an initialized repo WHEN backlog add THEN a file is created."""
