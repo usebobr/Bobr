@@ -1,6 +1,6 @@
 # PRD: Bobr — AI Agent First платформа для разработки ПО
 
-> Version: 0.5 | Date: 2026-03-18 | Author: Artem (с помощью Claude Code)
+> Version: 0.6 | Date: 2026-03-18 | Author: Artem (с помощью Claude Code)
 
 ---
 
@@ -21,6 +21,19 @@ AI-агенты стали полноценными участниками softw
 **Ни одна модель не покрывает полный цикл**: requirements engineering → knowledge management → backlog → specs → agent execution → delivery → verification.
 
 Height.app (наиболее "AI-first" PM) — **закрылся**: быть слишком далеко впереди рынка без пользовательской базы фатально. Но взрыв Taskmaster AI и оценка Devin сигнализируют: **рынок созрел**.
+
+### 1.1b Новая категория: Persistent Memory для агентов
+
+**Beads** (Steve Yegge, github.com/steveyegge/beads) — распределённый graph-based issue tracker для AI-агентов. Go + Dolt (version-controlled SQL). Ключевые идеи:
+- **Hash-based IDs** (`bd-a1b2`) — нет merge конфликтов при параллельных агентах
+- **`bd ready`** — задачи без открытых блокеров (ready for pickup)
+- **Atomic claim** — агент забирает задачу атомарно
+- **Memory decay** — completed tasks → summary для экономии контекста
+- **Dependency graph** — транзитивные зависимости, блокеры
+
+Beads решает проблему persistent memory, но остаётся чистым task tracker — без requirements, specs, knowledge, team, UI.
+
+**Bobr берёт из Beads**: hash IDs, dependency graph, `ready`/`claim`/`blocked` commands, memory decay для context generation. **Bobr добавляет**: requirements, specs, knowledge base, consumer interfaces (Cowork, Telegram), Runner.
 
 ### 1.2 Что отсутствует на рынке (из Deep Research)
 
@@ -111,22 +124,22 @@ Bobr объединяет лучшие черты всех трёх моделе
 
 ### 2.4 Расширенное сравнение с конкурентами
 
-| Capability | Bobr | Taskmaster AI | Backlog.md | Hamster | Linear+Agents | Jira+Rovo | Devin | Codex | Jules | Kiro |
-|---|---|---|---|---|---|---|---|---|---|---|
-| **Requirements mgmt** | ✅ Вигерс | ❌ | ❌ | ❌ Briefs | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ req.md |
-| **Knowledge base** | ✅ Full | ❌ | ❌ | ❌ | ❌ | ⚠️ Confluence | ❌ | ❌ | ❌ | ❌ |
-| **Spec-driven dev** | ✅ OpenSpec | ❌ | ⚠️ Basic | ❌ | ❌ | ❌ | ❌ | ⚠️ /plan | ❌ | ✅ 3-phase |
-| **Git-native storage** | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Multi-agent parallel** | ✅ Worktrees | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ MultiDevin | ✅ Sandbox | ✅ Batch | ❌ |
-| **Agent monitoring** | ✅ Cost+logs | ❌ | ❌ | ❌ | ⚠️ Cycle time | ❌ | ✅ | ✅ | ⚠️ | ❌ |
-| **Team collaboration** | ✅ | ❌ | ⚠️ Kanban | ✅ RT | ✅ | ✅ | ⚠️ | ⚠️ Slack | ❌ | ❌ |
-| **MCP native** | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Traceability** | ✅ Full | ❌ | ❌ | ❌ | ❌ | ⚠️ | ❌ | ❌ | ❌ | ⚠️ |
-| **Open source** | ✅ Plan | ✅ MIT+CC | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Deploy preview** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| **Human execution** | ✅ Full parity | ⚠️ | ⚠️ | ⚠️ | ✅ | ✅ | ❌ Agent-only | ❌ | ❌ | ⚠️ |
+| Capability | Bobr | Beads | Taskmaster AI | Backlog.md | Hamster | Linear+Agents | Devin | Codex | Kiro |
+|---|---|---|---|---|---|---|---|---|---|
+| **Requirements mgmt** | ✅ Вигерс | ❌ | ❌ | ❌ | ❌ Briefs | ❌ | ❌ | ❌ | ⚠️ req.md |
+| **Knowledge base** | ✅ Full | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Spec-driven dev** | ✅ OpenSpec | ❌ | ❌ | ⚠️ Basic | ❌ | ❌ | ❌ | ⚠️ /plan | ✅ 3-phase |
+| **Dependency graph** | ✅ Hash+SQLite | ✅ Dolt | ⚠️ Sequential | ❌ | ❌ | ⚠️ | ❌ | ❌ | ❌ |
+| **`ready`/`claim`** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Git-native storage** | ✅ MD+YAML | ⚠️ Dolt DB | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| **Multi-agent parallel** | ✅ Worktrees | ⚠️ Hash IDs | ❌ | ❌ | ❌ | ❌ | ✅ MultiDevin | ✅ Sandbox | ❌ |
+| **Consumer interfaces** | ✅ Cowork+TG | ❌ CLI only | ❌ | ❌ | ✅ Web | ✅ Web | ⚠️ | ⚠️ Slack | ❌ |
+| **MCP native** | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **Traceability** | ✅ Full | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ |
+| **Open source** | ✅ AGPL | ✅ Apache | ✅ MIT+CC | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Human execution** | ✅ Full parity | ⚠️ | ⚠️ | ⚠️ | ⚠️ | ✅ | ❌ Agent-only | ❌ | ⚠️ |
 
-**Уникальная комбинация Bobr**: Requirements + Knowledge + Specs + Agent orchestration + Team + Git-native + Open source.
+**Уникальная комбинация Bobr**: Requirements + Knowledge + Specs + Dependency graph (как Beads) + Consumer interfaces (Cowork, Telegram) + Git-native + Open source. Ни один инструмент не покрывает всё.
 
 ---
 
@@ -317,6 +330,25 @@ Bobr **не вызывает Claude API / OpenAI / Google AI**. Zero AI dependen
 - **FR-BL-07**: Duplicate detection (как Linear Triage)
 - **FR-BL-08**: Wave planning: группировка независимых задач для параллельного запуска агентов (P4)
 
+#### 5.3.1a Hash-based IDs (вдохновлено Beads)
+- **FR-BL-30**: Hash-based идентификаторы: `BL-a1b2` (4-char hash) вместо sequential IDs. Безопасно для параллельных агентов — нет merge конфликтов при одновременном создании items
+- **FR-BL-31**: Иерархические ID: `BL-a1b2` (item) → `BL-a1b2.1` (sub-task) для декомпозиции
+
+#### 5.3.1b Dependency Graph (вдохновлено Beads)
+- **FR-BL-32**: Зависимости в YAML frontmatter: `depends_on: [BL-a1b2, BL-c3d4]`, `blocks: [BL-e5f6]`
+- **FR-BL-33**: `bobr backlog ready` — показать задачи без открытых блокеров (ready for agent pickup)
+- **FR-BL-34**: `bobr backlog claim <id>` — атомарно установить assignee + status: in-progress (как `bd update --claim` в Beads)
+- **FR-BL-35**: Транзитивные зависимости: если A блокирует B, B блокирует C → C transitively blocked by A
+- **FR-BL-36**: `bobr backlog blocked` — показать заблокированные задачи с причинами (кем заблокированы)
+- **FR-BL-37**: Relationship types: `depends_on` (блокирующая), `relates_to` (информационная), `duplicates`
+
+#### 5.3.1c SQLite Cache (без INDEX.md)
+- **FR-BL-38**: Никакого INDEX.md — source of truth в YAML frontmatter каждого файла
+- **FR-BL-39**: `.bobr/.cache/bobr.db` (SQLite, в `.gitignore`) — кэш для быстрых запросов
+- **FR-BL-40**: Инкрементальное обновление: при каждом вызове CLI сравнить mtime файлов, перечитать только изменённые
+- **FR-BL-41**: Холодный старт (clone, первый запуск): полный rebuild кэша из файлов
+- **FR-BL-42**: Dependency graph хранится в SQLite — быстрые запросы `ready`, `blocked`, transitive dependencies
+
 #### 5.3.2 Spec-Driven Development (OpenSpec)
 - **FR-BL-10**: Change workflow: new → proposal → design → tasks → implement → verify → archive
 - **FR-BL-11**: Артефакты change: proposal.md (что и зачем), design.md (как), tasks.md (декомпозиция) — аналог 3-фазного workflow Kiro (requirements.md → design.md → tasks.md)
@@ -344,6 +376,10 @@ Bobr **не вызывает Claude API / OpenAI / Google AI**. Zero AI dependen
 #### 5.4.2 L2: CLI Interface
 - **FR-AI-10**: Все CLI-команды поддерживают `--output json` для machine-readable output
 - **FR-AI-11**: `bobr backlog add/list/edit/drop/promote` — управление бэклогом
+- **FR-AI-11a**: `bobr backlog ready` — задачи без блокеров, готовые к работе
+- **FR-AI-11b**: `bobr backlog claim <id>` — атомарно взять задачу (assignee + in-progress)
+- **FR-AI-11c**: `bobr backlog blocked` — заблокированные задачи с причинами
+- **FR-AI-11d**: `bobr dep add/remove/list` — управление зависимостями
 - **FR-AI-12**: `bobr change new/continue/verify/archive` — управление changes
 - **FR-AI-13**: `bobr context generate` — сборка контекста для агента (specs + requirements + knowledge → AGENTS.md / CLAUDE.md)
 - **FR-AI-14**: `bobr status` — текущее состояние проекта (active changes, backlog summary, recent activity)
@@ -351,7 +387,7 @@ Bobr **не вызывает Claude API / OpenAI / Google AI**. Zero AI dependen
 
 #### 5.4.3 L3: MCP Server
 - **FR-AI-20**: Bobr MCP Server (Streamable HTTP) — AI-агенты подключают Bobr как MCP tool provider
-- **FR-AI-21**: MCP tools: `read_backlog`, `add_backlog_item`, `get_change`, `create_change`, `read_spec`, `search_knowledge`, `get_project_status`
+- **FR-AI-21**: MCP tools: `read_backlog`, `get_ready_items`, `claim_item`, `add_backlog_item`, `get_change`, `create_change`, `read_spec`, `search_knowledge`, `get_project_status`, `get_blocked_items`
 - **FR-AI-22**: Dynamic tool descriptions: MCP tools включают текущий project context в описаниях (агент знает что за проект)
 - **FR-AI-23**: OAuth 2.1 авторизация для cloud-hosted MCP server (как Linear MCP)
 
@@ -639,6 +675,8 @@ project-repo/
 ├── .bobr/
 │   ├── config.yaml              # Project settings, agent defaults
 │   ├── AGENTS.md                # Auto-generated agent instructions
+│   ├── .cache/                  # ◄ .gitignore — SQLite cache, computed views
+│   │   └── bobr.db              # Parsed frontmatter, dependency graph, FTS
 │   ├── knowledge/
 │   │   ├── documents/           # Uploaded docs (or symlinks)
 │   │   ├── meetings/            # Transcripts + summaries
@@ -651,13 +689,12 @@ project-repo/
 │   │   │   └── <UC-id>.md
 │   │   └── requirements.md      # Functional + non-functional
 │   ├── backlog/
-│   │   ├── INDEX.md             # Master table (ID, Type, Priority, Title, Area, Epic, Assignee)
 │   │   ├── epics/
 │   │   │   └── <slug>.md
-│   │   ├── bug-*.md
-│   │   ├── feature-*.md
-│   │   ├── idea-*.md
-│   │   └── improvement-*.md
+│   │   ├── feature-<hash>.md    # e.g. feature-a1b2.md (hash-based ID)
+│   │   ├── bug-<hash>.md
+│   │   ├── idea-<hash>.md
+│   │   └── improvement-<hash>.md
 │   └── specs/
 │       ├── <spec-name>/
 │       │   └── spec.md
@@ -670,6 +707,8 @@ project-repo/
 ├── src/
 └── ...
 ```
+
+**Нет INDEX.md** — source of truth в YAML frontmatter каждого файла. Bobr CLI строит индекс динамически, кэширует в `.bobr/.cache/bobr.db` (SQLite, в `.gitignore`). Инкрементальное обновление по mtime файлов.
 
 ### 7.3 Ключевые связи и feedback loops
 
@@ -951,8 +990,11 @@ Phase 0 (сейчас):
 
 Phase 0 done (Week 3):
   bobr init создаёт .bobr/ в репозитории Bobr
-  bobr backlog add/list работает (L2: CLI)
+  bobr backlog add/list/ready/claim работает (L2: CLI)
+  bobr dep add/list — зависимости между задачами
+  SQLite cache для быстрых запросов (hash IDs, dependency graph)
   ► Claude Code использует bobr CLI + читает .bobr/ файлы
+  ► bobr backlog ready → агент знает что можно взять
 
 Phase 1 (Week 5–6):
   Change workflow + MCP server работают
@@ -1018,24 +1060,28 @@ Full loop (Week 15+):
 
 ### Phase 0: Bootstrap (Weeks 1–3)
 
-**Цель**: `.bobr/` формат + CLI для бэклога (L1 + L2). К концу фазы бэклог Bobr ведётся в Bobr.
+**Цель**: `.bobr/` формат + CLI для бэклога с зависимостями (L1 + L2). К концу фазы бэклог Bobr ведётся в Bobr.
 
-**Dogfooding milestone**: Бэклог Bobr создан в `.bobr/`, все новые items через CLI.
+**Dogfooding milestone**: Бэклог Bobr создан в `.bobr/`, все новые items через CLI. `bobr backlog ready` показывает что можно взять в работу.
 
 **Agent interface level**: L1 (files) + L2 (CLI)
 
-- [ ] `.bobr/` format specification (YAML frontmatter + Markdown)
+- [ ] `.bobr/` format specification (YAML frontmatter + Markdown, hash-based IDs)
 - [ ] CLI scaffolding (Python/Typer): `bobr init`
 - [ ] `bobr backlog add` / `list` / `edit` / `drop` (с `--output json`)
+- [ ] `bobr backlog ready` — задачи без блокеров, готовые к работе
+- [ ] `bobr backlog claim <id>` — атомарно взять задачу (assignee + in-progress)
+- [ ] `bobr backlog blocked` — заблокированные задачи с причинами
+- [ ] `bobr dep add` / `remove` / `list` — управление зависимостями
+- [ ] SQLite cache (`.bobr/.cache/bobr.db`, `.gitignore`) — инкрементальное обновление по mtime
 - [ ] `bobr validate` — проверка корректности .bobr/ структуры
 - [ ] `bobr status` — текущее состояние проекта (machine-readable)
-- [ ] INDEX.md auto-generation
 - [ ] **Создать бэклог Bobr** — PRD items → `.bobr/backlog/`
 - [ ] Git-native storage: все операции = file writes + git commits
 
-**Не нужно для этой фазы**: API server, database, web UI, auth, AI/LLM.
+**Не нужно для этой фазы**: API server, web UI, auth, AI/LLM, INDEX.md.
 
-**Как агенты работают с Bobr на этом этапе**: Claude Code читает `.bobr/` файлы напрямую (L1) и вызывает `bobr` CLI (L2). Никакой специальной интеграции не нужно — агент уже умеет читать файлы и запускать shell-команды.
+**Как агенты работают с Bobr на этом этапе**: Claude Code читает `.bobr/` файлы напрямую (L1) и вызывает `bobr` CLI (L2). `bobr backlog ready --output json` даёт агенту список задач, которые можно взять. `bobr backlog claim` — агент забирает задачу.
 
 ### Phase 1: Spec-Driven Loop + MCP + Cowork (Weeks 4–6)
 
@@ -1151,6 +1197,7 @@ Full loop (Week 15+):
 | **Claude Forge** | 39 фич, 9 батчей, 0 конфликтов через wave planning | Wave planner в Phase 3 |
 | **ClickUp Super Agent** | Weekly AI sprint proposal + "Cut This" recommendation | AI-assisted prioritization |
 | **Backlog Agents plugin** | 90% token reduction через prompt caching | Aggressive caching strategy |
+| **Beads** (Steve Yegge) | Hash-based IDs (no merge conflicts) + `ready`/`claim` + dependency graph + memory decay | Hash IDs, dependency graph в SQLite, `ready`/`claim`/`blocked` commands, memory decay в context generation |
 
 ### 14.2 Чего избегать
 
@@ -1201,6 +1248,11 @@ Full loop (Week 15+):
 | **North Star Flow** | Целевой сценарий: CEO нажимает «Запустить» → AI-агент пишет код → CEO получает Preview link |
 | **Consumer** | Интерфейс для взаимодействия с Bobr Core: Claude Code, Claude Cowork, Telegram Bot, Web UI |
 | **Claude Cowork** | Агентный режим в Claude Desktop — "Claude Code для остальной работы". Поддерживает MCP, файлы, shell commands |
+| **Hash ID** | 4-символьный хэш-идентификатор (`BL-a1b2`). Безопасен для параллельных агентов — нет merge конфликтов |
+| **Ready** | Задача без открытых блокеров, готовая к выполнению агентом или человеком |
+| **Claim** | Атомарная операция: assignee + status:in-progress. Агент "забирает" задачу |
+| **Memory Decay** | Суммаризация completed tasks для экономии контекстного окна агента |
+| **Dependency Graph** | Граф зависимостей между задачами. Хранится в SQLite cache, source of truth в YAML frontmatter |
 
 ## Appendix B: Референсы
 
@@ -1216,6 +1268,9 @@ Full loop (Week 15+):
 - **Codex** (OpenAI) — cloud-native parallel execution, Skills, Automations
 - **Jules** (Google) — "Delegate your backlog", GitHub Issues native, Gemini 2.5 Pro
 - **Kiro** (Amazon) — spec-driven IDE, 3-phase workflow, Agent Hooks
+
+### Agent-native tools
+- **Beads** (github.com/steveyegge/beads) — distributed graph-based issue tracker for AI agents. Hash-based IDs, dependency graph, `ready`/`claim`, memory decay. Go + Dolt. By Steve Yegge
 
 ### Open-source frameworks
 - **MetaGPT** (59.6K stars) — multi-agent SOP, ICLR 2024
