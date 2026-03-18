@@ -1,10 +1,10 @@
 # Bobr — Project Management for AI Agents
 
-This project uses **Bobr** for backlog, requirements, and spec management.
+This project uses **Bobr** for backlog, worktrees, and project management. **OpenSpec** manages spec lifecycle (changes, artifacts, delta specs, archiving).
 
 ## Golden Rule
 
-**All tasks, requirements, and specs go through `bobr` CLI or MCP tools. Never create your own TODO files or invent custom formats.**
+**All tasks go through `bobr` CLI or MCP tools. All spec changes go through `openspec` CLI. Never create your own TODO files or invent custom formats.**
 
 ## When to Use Bobr
 
@@ -28,11 +28,12 @@ Bobr is available via MCP tools (preferred) and CLI. Use whichever is available.
 
 ## Data Structure
 
-Project data lives in `.bobr/`:
+Project data lives in `.bobr/` and `openspec/`:
 - `.bobr/backlog/` — tasks (markdown + YAML frontmatter)
 - `.bobr/requirements/` — PRD, PRFAQ, requirements documents
-- `.bobr/specs/` — specifications and changes
 - `.bobr/knowledge/` — knowledge base (meetings, documents)
+- `openspec/changes/` — active and archived OpenSpec changes
+- `openspec/specs/` — living main specs (synced from delta specs on archive)
 
 ## CLI Reference
 
@@ -88,10 +89,10 @@ Use `/bobr:feature` for guided feature development through 9 phases:
 2. **Codebase Exploration** — parallel `bobr-explorer` agents
 3. **Clarifying Questions** — interactive, one at a time with numbered menu
 4. **Architecture Design** — parallel `bobr-architect` agents, user picks approach
-5. **Register Change** — `bobr change new` + fill artifacts with design
+5. **Register Change** — `openspec new change` + create artifacts in dependency order
 6. **Implementation** — work in isolated git worktree
 7. **Quality Review** — parallel `bobr-reviewer` agents
-8. **Finalize** — update docs, verify + archive change
+8. **Finalize** — update docs, `openspec verify` + `openspec archive`
 9. **Deliver** — push, optional PR, set in-review
 
 ### Worktrees

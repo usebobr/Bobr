@@ -136,29 +136,36 @@ I recommend option N because [reasoning].
 
 ---
 
-## Phase 5: Register Change
+## Phase 5: Register Change (OpenSpec)
 
-**Goal**: Record the approved design as a Bobr change before implementation.
+**Goal**: Record the approved design as an OpenSpec change before implementation.
 
 **DO NOT START WITHOUT USER APPROVAL OF THE ARCHITECTURE (Phase 4).**
 
 **Actions**:
-1. Create change linked to backlog item:
+1. Create a new OpenSpec change:
    ```bash
-   uv run bobr change new "<item-title>" --promotes <BL-ID> -o json
+   openspec new change "<kebab-case-name>"
    ```
 
-2. Fast-forward to create all artifact stubs:
+2. Get the artifact build order and create all artifacts:
    ```bash
-   uv run bobr change ff <CHANGE-NAME> -o json
+   openspec status --change "<name>" --json
    ```
 
-3. Fill in the change artifacts with the chosen architecture:
-   - Write `proposal.md` with the rationale and summary
-   - Write `design.md` with the architecture decision, component design, and data flow
-   - Write `tasks.md` with implementation checklist from the chosen architect's blueprint
+3. For each artifact in dependency order:
+   - Get instructions: `openspec instructions <artifact-id> --change "<name>" --json`
+   - Read completed dependency artifacts for context
+   - Create the artifact file using `template` as structure, informed by the chosen architecture and all codebase context from earlier phases
+   - Apply `context` and `rules` as constraints — do NOT copy them into the file
+   - Repeat until all `applyRequires` artifacts are complete
 
-4. Show summary: change ID, name, artifacts created
+4. Show final status:
+   ```bash
+   openspec status --change "<name>"
+   ```
+
+5. Show summary: change name, location, artifacts created
 
 ---
 
@@ -231,20 +238,20 @@ What would you like to do?
 
 ## Phase 8: Finalize
 
-**Goal**: Update documentation, verify and archive the change.
+**Goal**: Update documentation, verify and archive the OpenSpec change.
 
 **Actions**:
 1. Ask user: "Did this feature introduce any new conventions that should be documented in CLAUDE.md?"
    - If yes, update `plugin/CLAUDE.md` with the new conventions
 
-2. Verify all tasks are complete:
+2. Verify the change is complete and implementation matches artifacts:
    ```bash
-   uv run bobr change verify <CHANGE-NAME> -o json
+   openspec verify --change "<name>"
    ```
 
 3. Archive the change (syncs delta specs to main specs):
    ```bash
-   uv run bobr change archive <CHANGE-NAME> -o json
+   openspec archive --change "<name>"
    ```
 
 4. Mark all TodoWrite items complete
