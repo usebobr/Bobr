@@ -1,2 +1,7 @@
 # Bobr
-AI Agent First platform for software delivery — from requirements to production. Manage backlog, specs, and knowledge while AI agents write the code.
+
+Requirements, backlog, specs, and AI agent orchestration in one git-native platform. Agents build, humans decide.
+
+## License
+
+[AGPL-3.0](LICENSE)
