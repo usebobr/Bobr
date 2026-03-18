@@ -19,7 +19,7 @@ def bobr_repo(tmp_path, monkeypatch):
     """Create an initialized bobr repo in tmp_path and cd into it."""
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
-    result = runner.invoke(app, ["init", str(tmp_path)])
+    result = runner.invoke(app, ["init", str(tmp_path)], input="y\n")
     assert result.exit_code == 0
     return tmp_path
 

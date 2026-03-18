@@ -55,7 +55,52 @@ def init(
     if not config.exists():
         config.write_text("schema: bobr\nversion: \"0.1\"\n")
 
+    _setup_claude_permissions(root)
+
     typer.echo(f"Initialized .bobr/ in {root}")
+
+
+def _setup_claude_permissions(root: Path) -> None:
+    """Ask once whether to auto-allow bobr commands in Claude Code."""
+    import json
+
+    claude_dir = root / ".claude"
+    settings_path = claude_dir / "settings.json"
+
+    # Already configured — skip
+    if settings_path.exists():
+        try:
+            existing = json.loads(settings_path.read_text())
+            if existing.get("permissions", {}).get("allow"):
+                return
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    allow = typer.confirm(
+        "Allow AI agents to run bobr commands without asking each time?",
+        default=True,
+    )
+    if not allow:
+        return
+
+    claude_dir.mkdir(parents=True, exist_ok=True)
+
+    # Merge with existing settings if any
+    settings: dict = {}
+    if settings_path.exists():
+        try:
+            settings = json.loads(settings_path.read_text())
+        except json.JSONDecodeError:
+            pass
+
+    permissions = settings.setdefault("permissions", {})
+    allow_list = permissions.setdefault("allow", [])
+    for rule in ["Bash(uv run bobr *)", "Bash(uv run pytest *)"]:
+        if rule not in allow_list:
+            allow_list.append(rule)
+
+    settings_path.write_text(json.dumps(settings, indent=2) + "\n")
+    typer.echo("  Claude Code permissions configured (.claude/settings.json)")
 
 
 @app.command()

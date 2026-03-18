@@ -9,17 +9,27 @@ runner = CliRunner()
 
 class TestInit:
     def test_init_creates_structure(self, tmp_path, monkeypatch):
-        """GIVEN a directory WHEN bobr init THEN .bobr/ structure is created."""
+        """GIVEN a directory WHEN bobr init THEN .bobr/ structure and .claude/settings.json are created."""
         monkeypatch.chdir(tmp_path)
-        result = runner.invoke(app, ["init", str(tmp_path)])
+        result = runner.invoke(app, ["init", str(tmp_path)], input="y\n")
         assert result.exit_code == 0
         assert (tmp_path / ".bobr" / "backlog" / "epics").exists()
         assert (tmp_path / ".bobr" / "config.yaml").exists()
+        assert (tmp_path / ".claude" / "settings.json").exists()
+
+    def test_init_decline_permissions(self, tmp_path, monkeypatch):
+        """GIVEN a directory WHEN bobr init and user declines permissions THEN no .claude/ created."""
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(app, ["init", str(tmp_path)], input="n\n")
+        assert result.exit_code == 0
+        assert (tmp_path / ".bobr" / "config.yaml").exists()
+        assert not (tmp_path / ".claude" / "settings.json").exists()
 
     def test_init_idempotent(self, bobr_repo):
-        """GIVEN an already initialized repo WHEN bobr init again THEN no error."""
+        """GIVEN an already initialized repo WHEN bobr init again THEN no error and no duplicate prompt."""
         result = runner.invoke(app, ["init", str(bobr_repo)])
         assert result.exit_code == 0
+        assert "Allow AI agents" not in result.output
 
 
 class TestBacklogAdd:

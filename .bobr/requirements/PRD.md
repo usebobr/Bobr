@@ -1,6 +1,6 @@
 # PRD: Bobr — AI Agent First платформа для разработки ПО
 
-> Version: 0.6 | Date: 2026-03-18 | Author: Artem (с помощью Claude Code)
+> Version: 0.7 | Date: 2026-03-18 | Author: Artem (с помощью Claude Code)
 
 ---
 
@@ -121,6 +121,7 @@ Bobr объединяет лучшие черты всех трёх моделе
 7. **Token budget as capacity** — AI cost как метрика планирования вместо story points (паттерн из Scrum.org для AI-first)
 8. **Convention over configuration** — разумные defaults, `.bobr/` структура, AGENTS.md как стандарт
 9. **Dogfooding from Day 1** — Bobr разрабатывается с помощью Bobr. Каждая фаза roadmap заканчивается тем, что следующая фаза ведётся уже в самом продукте
+10. **Everything is a PR (via Worktree)** — любое изменение в репозитории, выполненное через Bobr, заканчивается Pull Request в целевую ветку (default: `main`, настраивается в `config.yaml`). Это касается **всего**: backlog items, requirements, specs, knowledge, код. Механизм: Bobr создаёт **git worktree** на новой ветке → вносит изменения → commit + push → PR. Worktree обеспечивает полную изоляцию: несколько агентов работают параллельно, каждый в своей копии репозитория, не мешая друг другу и не блокируя основную рабочую директорию. Прямые коммиты в main — только `bobr init`. Это даёт: review trail, атомарность, параллелизм агентов, совместимость с CI/CD и branch protection
 
 ### 2.4 Расширенное сравнение с конкурентами
 
@@ -592,6 +593,7 @@ Bobr Runner — **отдельный компонент**, который:
 - **NFR-05**: Event-driven: все действия генерируют события (P5)
 - **NFR-06**: Tool Provider: Bobr — инструмент для AI-агентов (L1: files, L2: CLI, L3: MCP), не AI consumer. Zero LLM dependency в ядре
 - **NFR-07**: Agent-agnostic: работает с любым агентом, который умеет читать файлы, вызывать CLI или подключать MCP
+- **NFR-08**: PR-based via Worktree: все мутации через bobr создают git worktree на новой ветке → commit → push → PR в целевую ветку (настраивается в `config.yaml`, default: `main`). Worktree cleanup после создания PR. Единственное исключение: `bobr init`. Поддержка параллельной работы нескольких агентов без блокировки основной рабочей директории
 
 ### 6.2 Производительность
 
@@ -1078,6 +1080,7 @@ Full loop (Week 15+):
 - [ ] `bobr status` — текущее состояние проекта (machine-readable)
 - [ ] **Создать бэклог Bobr** — PRD items → `.bobr/backlog/`
 - [ ] Git-native storage: все операции = file writes + git commits
+- [ ] **PR workflow via Worktree**: все операции bobr (кроме `init`) создают git worktree → ветку → commit → push → PR (P10: "Everything is a PR"). Параллельная работа агентов без конфликтов
 
 **Не нужно для этой фазы**: API server, web UI, auth, AI/LLM, INDEX.md.
 

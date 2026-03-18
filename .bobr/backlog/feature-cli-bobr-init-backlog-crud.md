@@ -9,8 +9,8 @@ blocks:
 created: '2026-03-18T10:39:47.302431+00:00'
 id: BL-83e4
 priority: 0
-status: in-progress
+status: done
 title: 'CLI: bobr init + backlog CRUD'
 type: feature
-updated: '2026-03-18T10:40:48.537312+00:00'
+updated: '2026-03-18T10:49:28.844859+00:00'
 ---
