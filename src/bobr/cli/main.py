@@ -13,11 +13,9 @@ from bobr.core.repo import BobrNotFound, find_root, get_paths
 from bobr.core.storage import list_item_files, read_item
 
 from .backlog import app as backlog_app
-from .change import app as change_app
 from .context import app as context_app
 from .dep import app as dep_app
 from .output import render_status
-from .spec import app as spec_app
 from .worktree import app as worktree_app
 
 app = typer.Typer(
@@ -26,10 +24,8 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(backlog_app)
-app.add_typer(change_app)
 app.add_typer(context_app)
 app.add_typer(dep_app)
-app.add_typer(spec_app)
 app.add_typer(worktree_app)
 
 OutputFmt = Annotated[str, typer.Option("--output", "-o", help="Output format: table or json")]
@@ -52,7 +48,6 @@ def init(
     dirs = [
         bobr_dir / "backlog" / "epics",
         bobr_dir / "requirements",
-        bobr_dir / "specs" / "changes",
         bobr_dir / "knowledge",
         bobr_dir / ".cache",
     ]

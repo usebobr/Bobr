@@ -29,9 +29,9 @@ class TestContextGenerate:
         assert "Product Requirements" in result.output
 
     def test_generate_includes_specs(self, bobr_repo, monkeypatch):
-        """GIVEN specs exist WHEN context generate THEN specs section included."""
+        """GIVEN OpenSpec specs exist WHEN context generate THEN specs section included."""
         monkeypatch.chdir(bobr_repo)
-        spec_dir = bobr_repo / ".bobr" / "specs" / "auth"
+        spec_dir = bobr_repo / "openspec" / "specs" / "auth"
         spec_dir.mkdir(parents=True)
         (spec_dir / "spec.md").write_text("# Auth Module\n\nJWT-based auth.\n")
 
@@ -41,14 +41,16 @@ class TestContextGenerate:
         assert "Auth Module" in result.output
 
     def test_generate_includes_active_changes(self, bobr_repo, monkeypatch):
-        """GIVEN active changes WHEN context generate THEN active changes listed."""
+        """GIVEN active OpenSpec changes WHEN context generate THEN active changes listed."""
         monkeypatch.chdir(bobr_repo)
-        runner.invoke(app, ["change", "new", "Add logging"])
+        change_dir = bobr_repo / "openspec" / "changes" / "add-logging"
+        change_dir.mkdir(parents=True)
+        (change_dir / "proposal.md").write_text("# Add logging\n\nAdd structured logging.\n")
 
         result = runner.invoke(app, ["context", "generate"])
         assert result.exit_code == 0
         assert "Active Changes" in result.output
-        assert "Add logging" in result.output
+        assert "add-logging" in result.output
 
     def test_generate_includes_backlog_items(self, bobr_repo, monkeypatch):
         """GIVEN backlog items WHEN context generate THEN backlog summary shown."""

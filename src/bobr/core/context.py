@@ -2,12 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from bobr.core.change import ChangeStatus
-from bobr.core.change_storage import (
-    get_existing_artifacts,
-    list_changes,
-    parse_tasks,
-)
 from bobr.core.repo import BobrPaths
 
 
@@ -68,13 +62,13 @@ def _requirements_section(paths: BobrPaths) -> str:
 
 
 def _specs_section(paths: BobrPaths) -> str:
-    specs_dir = paths.bobr / "specs"
+    specs_dir = paths.root / "openspec" / "specs"
     if not specs_dir.exists():
         return ""
 
     spec_dirs = sorted(
         d for d in specs_dir.iterdir()
-        if d.is_dir() and d.name != "changes"
+        if d.is_dir()
     )
     if not spec_dirs:
         return ""
@@ -95,21 +89,22 @@ def _specs_section(paths: BobrPaths) -> str:
 
 
 def _active_changes_section(paths: BobrPaths) -> str:
-    changes = list_changes(paths.bobr)
-    if not changes:
+    changes_dir = paths.root / "openspec" / "changes"
+    if not changes_dir.exists():
         return ""
 
-    lines = ["## Active Changes", ""]
-    for c in changes:
-        cpath = paths.changes / c.name
-        arts = get_existing_artifacts(cpath)
-        tasks = parse_tasks(cpath)
-        tasks_str = f"{tasks['done']}/{tasks['total']}" if tasks["total"] > 0 else "no tasks"
+    # List non-archive subdirectories as active changes
+    active = sorted(
+        d for d in changes_dir.iterdir()
+        if d.is_dir() and d.name != "archive"
+    )
+    if not active:
+        return ""
 
-        lines.append(f"- **{c.title}** (`{c.name}`) — status: {c.status.value}, "
-                      f"artifacts: {', '.join(arts)}, tasks: {tasks_str}")
-        if c.promotes:
-            lines.append(f"  - Promotes: {c.promotes}")
+    lines = ["## Active Changes (OpenSpec)", ""]
+    for d in active:
+        artifacts = [f.stem for f in sorted(d.glob("*.md"))]
+        lines.append(f"- **{d.name}** — artifacts: {', '.join(artifacts) or 'none'}")
 
     lines.append("")
     return "\n".join(lines)
