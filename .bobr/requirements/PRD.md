@@ -1,6 +1,6 @@
 # PRD: Bobr — AI Agent First платформа для разработки ПО
 
-> Version: 0.7 | Date: 2026-03-18 | Author: Artem (с помощью Claude Code)
+> Version: 0.8 | Date: 2026-03-18 | Author: Artem (с помощью Claude Code)
 
 ---
 
@@ -8,7 +8,7 @@
 
 ### 1.1 Контекст рынка
 
-AI-агенты стали полноценными участниками software development: Claude Code, Cursor, GitHub Copilot Agent, Codex, Devin, Jules — все умеют автономно брать задачу, писать код, создавать PR. **Рынок взорвался**: 25+ open-source проектов, 15+ SaaS с агентными возможностями, 5800+ MCP-серверов, 97M+ скачиваний SDK/месяц. Taskmaster AI набрал 15 500 звёзд за 9 недель. Cognition (Devin) оценена в $10.2B.
+AI-агенты стали полноценными участниками software development: Claude Code, Cursor, GitHub Copilot Agent, Codex, Devin, Jules — все умеют автономно брать задачу, писать код, создавать PR. **Рынок взорвался**: 25+ open-source проектов, 15+ SaaS с агентными возможностями, 5800+ MCP-серверов, 97M+ скачиваний SDK/месяц. Taskmaster AI набрал 42 000+ звёзд. Cognition (Devin) оценена в $10.2B.
 
 Но **разрыв между инструментами огромен**. Сформировались три модели, каждая с фатальным ограничением:
 
@@ -130,6 +130,9 @@ Bobr объединяет лучшие черты всех трёх моделе
 | **Requirements mgmt** | ✅ Вигерс | ❌ | ❌ | ❌ | ❌ Briefs | ❌ | ❌ | ❌ | ⚠️ req.md |
 | **Knowledge base** | ✅ Full | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Spec-driven dev** | ✅ OpenSpec | ❌ | ❌ | ⚠️ Basic | ❌ | ❌ | ❌ | ⚠️ /plan | ✅ 3-phase |
+| **Feature workflow** | ✅ 11-phase | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ Hooks |
+| **PRD → Tasks** | ✅ generate | ❌ | ✅ parse-prd | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Tiered MCP tools** | ✅ 3 tiers | ❌ | ✅ 3 tiers | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Dependency graph** | ✅ Hash+SQLite | ✅ Dolt | ⚠️ Sequential | ❌ | ❌ | ⚠️ | ❌ | ❌ | ❌ |
 | **`ready`/`claim`** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **Git-native storage** | ✅ MD+YAML | ⚠️ Dolt DB | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
@@ -358,7 +361,49 @@ Bobr **не вызывает Claude API / OpenAI / Google AI**. Zero AI dependen
 - **FR-BL-14**: AI-генерация артефактов (P2: propose-review): пользователь описывает intent → AI создаёт proposal → human review → AI создаёт design → human review → AI создаёт tasks
 - **FR-BL-15**: Fast-forward mode: генерация всех артефактов за один шаг (для опытных пользователей)
 
-#### 5.3.3 Traceability
+#### 5.3.3 Feature Development Workflow (Plugin)
+
+> 11-фазный guided workflow для реализации фич. Bobr предоставляет его как slash command `/bobr:feature` через Claude Code Plugin. Вдохновлено feature-dev (Anthropic official plugin) и OpenSpec workflow.
+
+- **FR-BL-50**: Slash command `/bobr:feature <BL-id>` запускает guided workflow для задачи из бэклога
+- **FR-BL-51**: Phase 1 — Discovery: уточнение задачи, создание todo
+- **FR-BL-52**: Phase 2 — Codebase Exploration: 2-3 code-explorer агента параллельно, каждый возвращает 5-10 ключевых файлов
+- **FR-BL-53**: Phase 3 — Clarifying Questions: выявление неоднозначностей, ожидание ответов пользователя (CRITICAL: не пропускать)
+- **FR-BL-54**: Phase 4 — Architecture Design: 2-3 code-architect агента с разными фокусами (minimal / clean / pragmatic), рекомендация + ожидание выбора
+- **FR-BL-55**: Phase 5 — Register Spec Change: создание change в `.bobr/specs/changes/`, генерация артефактов (proposal → design → tasks)
+- **FR-BL-56**: Phase 6 — Implementation: реализация по задачам из change, следование выбранной архитектуре
+- **FR-BL-57**: Phase 7 — Quality Review: 3 code-reviewer агента параллельно (DRY/bugs/conventions), презентация находок
+- **FR-BL-58**: Phase 8 — Update Documentation: обновление спеков, README, комментариев
+- **FR-BL-59**: Phase 9 — Change Archive: архивация change, sync delta specs → main specs
+- **FR-BL-60**: Phase 10 — Close Tasks: закрытие задач в бэклоге, обновление связанных items
+- **FR-BL-61**: Phase 11 — Create PR: создание PR через `gh pr create` с описанием
+
+**Специализированные агенты Plugin** (аналог feature-dev agents):
+
+| Агент | Фазы | Назначение |
+|-------|-------|-----------|
+| `bobr-explorer` | 2 | Исследование кодовой базы: трассировка execution paths, маппинг архитектуры, возврат списка ключевых файлов |
+| `bobr-architect` | 4 | Проектирование архитектуры: анализ паттернов, предложение нескольких подходов с trade-offs |
+| `bobr-reviewer` | 7 | Ревью кода: confidence-based filtering (≥80%), фокусы на simplicity/bugs/conventions |
+
+**Интеграция с бэклогом**: автоматический `claim` задачи при старте Phase 1, автоматический `done` при Phase 10.
+
+**Интеграция со спеками**: Phase 5 создаёт change, Phase 9 архивирует и синхронизирует specs.
+
+#### 5.3.4 PRD → Tasks AI-генерация
+
+> AI-агент читает requirements из `.bobr/requirements/` и генерирует задачи в бэклоге. Вдохновлено Taskmaster AI `parse-prd` — killer feature продукта с 42K+ stars.
+
+- **FR-BL-70**: `bobr generate --from <path>` — AI-генерация задач из PRD/требований
+- **FR-BL-71**: Генерация для каждой задачи: title, description, type, priority, area, dependencies, acceptance criteria, test strategy
+- **FR-BL-72**: `bobr generate --append` — добавление задач из нового PRD без дублирования с существующими
+- **FR-BL-73**: Контекст-aware: при генерации учитывается текущий бэклог (для исключения дубликатов и корректных зависимостей)
+- **FR-BL-74**: Complexity analysis: AI оценивает сложность задач и рекомендует декомпозицию
+- **FR-BL-75**: `bobr generate --area <area>` — генерация задач только для определённой области
+
+**Архитектурное решение**: Bobr Core не вызывает AI API (P8: Tool Provider). `bobr generate` — команда в Claude Code Plugin, которая использует AI-агента (Claude) для генерации. CLI-команда `bobr generate` доступна только когда агент вызывает её, сам Bobr Core остаётся zero-AI.
+
+#### 5.3.5 Traceability
 - **FR-BL-20**: Полная цепочка: business need → requirement → spec → task → PR → deploy
 - **FR-BL-21**: Impact analysis: "Если изменить требование X, что затронется?"
 - **FR-BL-22**: Coverage: "Какие требования ещё не покрыты спецификациями/кодом?"
@@ -391,6 +436,13 @@ Bobr **не вызывает Claude API / OpenAI / Google AI**. Zero AI dependen
 - **FR-AI-21**: MCP tools: `read_backlog`, `get_ready_items`, `claim_item`, `add_backlog_item`, `get_change`, `create_change`, `read_spec`, `search_knowledge`, `get_project_status`, `get_blocked_items`
 - **FR-AI-22**: Dynamic tool descriptions: MCP tools включают текущий project context в описаниях (агент знает что за проект)
 - **FR-AI-23**: OAuth 2.1 авторизация для cloud-hosted MCP server (как Linear MCP)
+- **FR-AI-24**: Tiered MCP tools (вдохновлено Taskmaster AI): загрузка инструментов по уровням для экономии контекстного окна агента. Конфигурируется через env `BOBR_TOOLS`:
+
+| Tier | Tools | Назначение |
+|------|-------|-----------|
+| `core` (default) | 5-7 | Ежедневный минимум: `read_backlog`, `get_ready_items`, `claim_item`, `get_status`, `add_item` |
+| `standard` | 10-15 | Полное управление: + `create_change`, `get_change`, `search_knowledge`, deps |
+| `all` | 20+ | Всё: + `generate_tasks`, `log_activity`, `cost_tracking`, analytics |
 
 #### 5.4.4 Context Generation (P7)
 - **FR-AI-30**: `bobr context generate` собирает: relevant specs + requirements + active changes + conventions → один файл
@@ -846,7 +898,9 @@ project-repo/
 | M5 | Knowledge Base: документы + семантический поиск | Критично для context quality |
 | M6 | Team: invite, roles (incl. Agent role), activity feed | Без этого нет "team product" |
 | M7 | CLI interface | Developers и агенты работают из терминала |
-| M8 | MCP Server (stdio + Streamable HTTP) | Стандарт де-факто; агенты и Claude Cowork подключаются нативно |
+| M8 | MCP Server (stdio + Streamable HTTP) с tiered tools (core/standard/all) | Стандарт де-факто; агенты и Claude Cowork подключаются нативно; tiered loading экономит контекст (паттерн из Taskmaster) |
+| M9 | Feature Development Workflow: 11-фазный `/bobr:feature` с агентами (explorer, architect, reviewer) | Guided workflow — ядро developer experience; валидирован feature-dev plugin (Anthropic) |
+| M10 | PRD → Tasks AI-генерация (`bobr generate`) | Killer feature Taskmaster (42K+ stars); bridge между requirements и бэклогом |
 
 ### Should Have (v1.1)
 
@@ -1101,6 +1155,10 @@ Full loop (Week 15+):
 - [ ] Delta specs + sync to main specs
 - [ ] Epics: `bobr backlog epic-add` / `epic-list`
 - [ ] **MCP Server (stdio + Streamable HTTP)**: `read_backlog`, `add_item`, `get_change`, `get_status`
+- [ ] **Tiered MCP tools**: core (5-7) / standard (10-15) / all (20+), env `BOBR_TOOLS`
+- [ ] **Claude Code Plugin: `/bobr:feature` workflow** — 11-фазный guided feature development
+- [ ] **Plugin agents**: `bobr-explorer`, `bobr-architect`, `bobr-reviewer`
+- [ ] **Plugin: `bobr generate`** — PRD → Tasks AI-генерация из `.bobr/requirements/`
 - [ ] **Claude Cowork integration**: Костя/Иван подключают Bobr MCP Server в Claude Cowork
 - [ ] **Plan Phase 2 features as Changes** — собственные фичи проходят через workflow
 
@@ -1192,11 +1250,13 @@ Full loop (Week 15+):
 
 | Источник | Урок | Применение в Bobr |
 |----------|------|----------------------|
-| **Taskmaster AI** (15.5K за 9 недель) | PRD → structured tasks with dependencies — killer feature для solo/small team | Наш change workflow должен быть таким же простым для входа |
-| **Backlog.md** | Git-native markdown — правильная архитектура для AI | `.bobr/` формат |
-| **CCPM** | GitHub Issues как DB + 12 parallel worktrees = проверено | Worktree isolation для agents |
+| **Taskmaster AI** (42K+ stars) | PRD → structured tasks with dependencies — killer feature для solo/small team. Tiered MCP tools (core/standard/all) экономят контекст агента. testStrategy как first-class field | `bobr generate` для PRD→Tasks; tiered MCP tools; test strategy в задачах |
+| **Backlog.md** (v1.35) | Git-native markdown + terminal Kanban + web UI + MCP resources (не только tools). Agent instructions как отдельный модуль. `<CRITICAL_INSTRUCTION>` для принуждения агента читать docs | `.bobr/` формат; MCP resources; agent instruction generation |
+| **CCPM** | `.pm/` memory system (MISTAKES.md, DECISIONS.md). Loop prevention protocol (3 попытки → эскалация). Documentation checkpoints: "if it's not written, it didn't happen". Context preservation hooks (PreCompact/SessionStart) | MISTAKES.md для anti-patterns; loop prevention; context hooks |
 | **Linear for Agents** | Agent as first-class teammate с профилем и permissions | Agent role в нашей модели |
 | **Kiro (Amazon)** | 3-phase spec workflow (req → design → tasks) = наш change workflow | Валидация нашего подхода крупным вендором |
+| **Feature-dev plugin** (Anthropic official) | 7-фазный workflow с параллельными агентами (explorer/architect/reviewer). Human-in-the-loop на ключевых решениях. Agents возвращают "файлы для чтения" → основной агент читает | 11-фазный `/bobr:feature` workflow с 3 специализированными агентами |
+| **Code-simplifier** (Anthropic official) | Минималистичный агент-only плагин: один файл = один агент. Автономная работа после изменений кода | Паттерн "post-implementation review agent" |
 | **Claude Forge** | 39 фич, 9 батчей, 0 конфликтов через wave planning | Wave planner в Phase 3 |
 | **ClickUp Super Agent** | Weekly AI sprint proposal + "Cut This" recommendation | AI-assisted prioritization |
 | **Backlog Agents plugin** | 90% token reduction через prompt caching | Aggressive caching strategy |
@@ -1261,8 +1321,8 @@ Full loop (Week 15+):
 
 ### Прямые конкуренты и аналоги
 - **Hamster** (tryhamster.com) — team briefs + AI agent execution, 25K+ GitHub stars
-- **Taskmaster AI** (github.com/eyaltoledano/claude-task-master) — PRD → structured tasks, 25.7K stars, MIT+CC
-- **Backlog.md** (github.com/MrLesk/Backlog.md) — git-native markdown backlog + MCP
+- **Taskmaster AI** (github.com/eyaltoledano/claude-task-master) — PRD → structured tasks, 42K+ stars, MIT+CC, tiered MCP tools, Claude Code plugin с 49 commands и 3 agents
+- **Backlog.md** (github.com/MrLesk/Backlog.md) — git-native markdown backlog + MCP + terminal Kanban + web UI, Bun/TypeScript, v1.35
 - **CCPM** (Automaze) — GitHub Issues + 12 parallel Claude Code agents
 - **Capy** (capy.ai) — parallel AI IDE, Captain+Build architecture, YC-backed
 - **Linear for Agents** — agent-as-teammate, MCP, cycle time by agent
@@ -1283,10 +1343,15 @@ Full loop (Week 15+):
 - **Vibe Kanban** — parallel agent orchestration, 10+ worktrees
 - **GitHub Spec Kit** — official spec-driven development tool
 
+### Claude Code official plugins (изучены)
+- **feature-dev** (Sid Bidasaria, Anthropic) — 7-фазный workflow, 3 агента (code-explorer, code-architect, code-reviewer), OpenSpec интеграция
+- **code-simplifier** (Anthropic) — минималистичный агент-only плагин для упрощения кода после изменений
+- **Claude Code Project Manager** (github.com/alhoseany/Claude-Code-Project-Manager) — PM-оркестратор, `.pm/` memory system, loop prevention, context preservation hooks
+
 ### Validated internal tools
 - **Expecto project** — 117 specs, 64 changes, 68+ backlog items, full workflow
 - **Wiegers Requirements Plugin** — Vision & Scope, Use Cases, Quality Review
-- **OpenSpec** — spec-driven development convention
+- **OpenSpec** — spec-driven development convention, 10 commands (new/continue/ff/apply/verify/archive/sync/explore/onboard/bulk-archive)
 - **Backlog plugin** — 9 slash-commands, git-native storage
 
 ### Методологии

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -30,3 +31,26 @@ def bobr_paths(bobr_repo):
     from bobr.core.repo import get_paths
 
     return get_paths(bobr_repo)
+
+
+@pytest.fixture
+def git_bobr_repo(bobr_repo):
+    """A bobr repo with an initial git commit."""
+    env = {
+        "GIT_AUTHOR_NAME": "test",
+        "GIT_AUTHOR_EMAIL": "test@test.com",
+        "GIT_COMMITTER_NAME": "test",
+        "GIT_COMMITTER_EMAIL": "test@test.com",
+        "HOME": str(bobr_repo),
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+    }
+    subprocess.run(["git", "init"], cwd=bobr_repo, capture_output=True, check=True)
+    subprocess.run(["git", "add", "."], cwd=bobr_repo, capture_output=True, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "init"],
+        cwd=bobr_repo,
+        capture_output=True,
+        env=env,
+        check=True,
+    )
+    return bobr_repo

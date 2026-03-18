@@ -80,6 +80,34 @@ bobr init [PATH]
 
 Never stop after step 4. Always follow through to step 5.
 
+## Feature Development Workflow
+
+Use `/bobr:feature` for guided feature development through 9 phases:
+
+1. **Discovery** — resolve backlog item, auto-claim
+2. **Codebase Exploration** — parallel `bobr-explorer` agents
+3. **Clarifying Questions** — interactive, one at a time with numbered menu
+4. **Architecture Design** — parallel `bobr-architect` agents, user picks approach
+5. **Register Change** — `bobr change new` + fill artifacts with design
+6. **Implementation** — work in isolated git worktree
+7. **Quality Review** — parallel `bobr-reviewer` agents
+8. **Finalize** — update docs, verify + archive change
+9. **Deliver** — push, optional PR, set in-review
+
+### Worktrees
+- Each feature gets its own git worktree at `.bobr/.worktrees/{BL-id}/`
+- Branch naming: `feature/{BL-id}-{slug}`
+- Create: `bobr worktree create <BL-ID>`
+- Clean up after merge: `bobr worktree clean <BL-ID>`
+- List active: `bobr worktree list`
+
+### Worktree CLI Reference
+```
+bobr worktree create ITEM_ID [-o json]
+bobr worktree clean ITEM_ID
+bobr worktree list [-o json]
+```
+
 ## Conventions
 
 - Priorities: 0 = critical, 1 = high, 2 = medium, 3 = low, 4 = someday

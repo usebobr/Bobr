@@ -18,6 +18,7 @@ from .context import app as context_app
 from .dep import app as dep_app
 from .output import render_status
 from .spec import app as spec_app
+from .worktree import app as worktree_app
 
 app = typer.Typer(
     name="bobr",
@@ -29,6 +30,7 @@ app.add_typer(change_app)
 app.add_typer(context_app)
 app.add_typer(dep_app)
 app.add_typer(spec_app)
+app.add_typer(worktree_app)
 
 OutputFmt = Annotated[str, typer.Option("--output", "-o", help="Output format: table or json")]
 
@@ -101,7 +103,7 @@ def _setup_claude_permissions(root: Path) -> None:
 
     permissions = settings.setdefault("permissions", {})
     allow_list = permissions.setdefault("allow", [])
-    for rule in ["Bash(uv run bobr *)", "Bash(uv run pytest *)"]:
+    for rule in ["Bash(uv run bobr *)", "Bash(uv run pytest *)", "Bash(uv run bobr worktree *)"]:
         if rule not in allow_list:
             allow_list.append(rule)
 

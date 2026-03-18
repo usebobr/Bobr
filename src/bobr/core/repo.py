@@ -17,6 +17,7 @@ class BobrPaths:
     specs: Path  # .bobr/specs/
     changes: Path  # .bobr/specs/changes/
     archive: Path  # .bobr/specs/changes/archive/
+    worktrees: Path  # .bobr/.worktrees/
     cache_dir: Path  # .bobr/.cache/
     cache_db: Path  # .bobr/.cache/bobr.db
 
@@ -49,6 +50,7 @@ def get_paths(root: Path) -> BobrPaths:
         specs=bobr / "specs",
         changes=bobr / "specs" / "changes",
         archive=bobr / "specs" / "changes" / "archive",
+        worktrees=bobr / ".worktrees",
         cache_dir=bobr / ".cache",
         cache_db=bobr / ".cache" / "bobr.db",
     )
