@@ -100,13 +100,14 @@ Bobr объединяет лучшие черты всех трёх моделе
 ### 2.3 Ключевые принципы
 
 1. **AI Agent First, but not only** — агент — полноправный участник команды (как Linear for Agents, но глубже), человек всегда может сделать то же самое
-2. **Context is King** — каждый агент получает полный контекст: requirements + decisions + constraints + knowledge base (паттерн "Structured data over natural language" из MetaGPT)
-3. **Requirements-driven** — не "ticket → code", а "business need → requirements → specs → code → verify" (методология Вигерса + spec-driven development как у Kiro)
-4. **Git-native + Cloud-synced** — артефакты в git (портабельность), метаданные в cloud (team collaboration)
-5. **Propose-Review everywhere** — AI генерирует, человек ревьюит и решает (доминирующий паттерн даже в самых автономных системах)
-6. **Token budget as capacity** — AI cost как метрика планирования вместо story points (паттерн из Scrum.org для AI-first)
-7. **Convention over configuration** — разумные defaults, `.bobr/` структура, AGENTS.md как стандарт
-8. **Dogfooding from Day 1** — Bobr разрабатывается с помощью Bobr. Каждая фаза roadmap заканчивается тем, что следующая фаза ведётся уже в самом продукте
+2. **Tool Provider, not AI Consumer** — Bobr не вызывает AI API. Bobr предоставляет данные и инструменты, с которыми работают AI-агенты (Claude Code, Cursor, Codex, Devin, Jules, Copilot). Три уровня интеграции: файлы (.bobr/), CLI (bobr commands), MCP (protocol). Zero AI dependency в ядре
+3. **Context is King** — каждый агент получает полный контекст: requirements + decisions + constraints + knowledge base (паттерн "Structured data over natural language" из MetaGPT)
+4. **Requirements-driven** — не "ticket → code", а "business need → requirements → specs → code → verify" (методология Вигерса + spec-driven development как у Kiro)
+5. **Git-native + Cloud-synced** — артефакты в git (портабельность), метаданные в cloud (team collaboration)
+6. **Propose-Review everywhere** — AI генерирует, человек ревьюит и решает (доминирующий паттерн даже в самых автономных системах)
+7. **Token budget as capacity** — AI cost как метрика планирования вместо story points (паттерн из Scrum.org для AI-first)
+8. **Convention over configuration** — разумные defaults, `.bobr/` структура, AGENTS.md как стандарт
+9. **Dogfooding from Day 1** — Bobr разрабатывается с помощью Bobr. Каждая фаза roadmap заканчивается тем, что следующая фаза ведётся уже в самом продукте
 
 ### 2.4 Расширенное сравнение с конкурентами
 
@@ -211,7 +212,22 @@ Post-merge reflection: AI создаёт follow-up issues для code review fin
 
 Файл инструкций для агента, автоматически генерируемый из project context.
 
-**Реализация в Bobr**: Автогенерация CLAUDE.md / AGENTS.md из requirements + specs + conventions + knowledge base.
+**Реализация в Bobr**: `bobr context generate` создаёт CLAUDE.md / AGENTS.md из requirements + specs + conventions + knowledge base. Агент читает его при старте.
+
+#### P8: Tool Provider, not AI Consumer
+**Источник**: Unix philosophy ("do one thing well"), MCP standard, Backlog.md
+
+Система управления не должна содержать AI — она должна быть **инструментом для AI**. Агенты приходят и уходят (Claude → Codex → следующий), данные и процесс остаются.
+
+**Реализация в Bobr**: Три уровня доступа для агентов:
+
+| Уровень | Механизм | Что получает агент | Какие агенты |
+|---------|----------|-------------------|--------------|
+| **L1: Files** | Агент читает/пишет `.bobr/` напрямую | YAML+MD файлы, machine-readable | Все (любой агент умеющий читать файлы) |
+| **L2: CLI** | Агент вызывает `bobr` команды | `--output json` на всех командах | Claude Code, Codex, Devin, Jules |
+| **L3: MCP** | Агент подключает Bobr MCP Server | Structured tools: read_backlog, create_change, etc. | Claude Code, Cursor, Copilot |
+
+Bobr **не вызывает Claude API / OpenAI / Google AI**. Zero AI dependency. AI-логика (explore, generate proposal, code review) — ответственность агента, который работает с Bobr.
 
 ### 4.2 Паттерн, который мы НЕ берём
 
@@ -312,32 +328,41 @@ Post-merge reflection: AI создаёт follow-up issues для code review fin
 - **FR-BL-22**: Coverage: "Какие требования ещё не покрыты спецификациями/кодом?"
 - **FR-BL-23**: Bi-directional links: изменение в коде пропагируется к specs (P6)
 
-### 5.4 Module: Agent Orchestration
+### 5.4 Module: Agent Interface (P8: Tool Provider)
 
-> Запуск, мониторинг и координация AI-агентов.
+> Bobr не запускает агентов — Bobr предоставляет данные и инструменты, с которыми агенты работают. Любой AI-агент (Claude Code, Cursor, Codex, Devin, Jules, Copilot) может использовать Bobr через файлы, CLI или MCP.
 
-#### 5.4.1 Agent Execution
-- **FR-AO-01**: Запуск AI-агента на задачу: task.md → agent получает полный контекст → пишет код → создаёт PR
-- **FR-AO-02**: Multi-agent parallel: wave-based запуск (P4) — до N агентов на независимые задачи в изолированных worktrees
-- **FR-AO-03**: Изолированная среда: каждый агент работает в своём git worktree (proven: Claude Forge — 39 фич, 0 конфликтов)
-- **FR-AO-04**: Multi-provider: Claude Code (primary), Codex, Cursor background agents, custom agents через agent protocol
-- **FR-AO-05**: Human fallback: любую задачу можно взять человеку вместо агента — единый интерфейс для обоих
-- **FR-AO-06**: Async execution: агент работает в cloud, можно закрыть ноутбук (как Jules)
-- **FR-AO-07**: Agent Skills: переиспользуемые инструкции для типовых задач (как Codex Skills)
+#### 5.4.1 L1: File-based Interface (.bobr/)
+- **FR-AI-01**: `.bobr/` формат полностью документирован и machine-readable (YAML frontmatter + Markdown)
+- **FR-AI-02**: Агент может читать/писать backlog items, specs, requirements, changes напрямую как файлы
+- **FR-AI-03**: Формат валидируется: `bobr validate` проверяет корректность .bobr/ структуры после ручного или агентского редактирования
+- **FR-AI-04**: `.bobr/AGENTS.md` — автогенерируемый файл-инструкция для агента, собирающий контекст из requirements + specs + conventions
 
-#### 5.4.2 Context Injection (P7)
-- **FR-AO-10**: Автоматическая сборка контекста: relevant specs + requirements + knowledge + codebase conventions → CLAUDE.md / AGENTS.md
-- **FR-AO-11**: Smart context selection: relevance scoring, чтобы не раздувать token usage
-- **FR-AO-12**: Scope limiting: агент видит только релевантные части codebase
-- **FR-AO-13**: Negative constraints: явное указание чего НЕ делать (proven паттерн из Scrum.org AI adaptation)
+#### 5.4.2 L2: CLI Interface
+- **FR-AI-10**: Все CLI-команды поддерживают `--output json` для machine-readable output
+- **FR-AI-11**: `bobr backlog add/list/edit/drop/promote` — управление бэклогом
+- **FR-AI-12**: `bobr change new/continue/verify/archive` — управление changes
+- **FR-AI-13**: `bobr context generate` — сборка контекста для агента (specs + requirements + knowledge → AGENTS.md / CLAUDE.md)
+- **FR-AI-14**: `bobr status` — текущее состояние проекта (active changes, backlog summary, recent activity)
+- **FR-AI-15**: Exit codes и structured errors для machine consumption
 
-#### 5.4.3 Agent Monitoring & Analytics
-- **FR-AO-20**: Real-time dashboard: какие агенты запущены, на каких задачах, прогресс
-- **FR-AO-21**: Логирование всех действий агента (tool calls, file changes, commands)
-- **FR-AO-22**: Alerts: агент застрял, тесты падают, бюджет токенов превышен
-- **FR-AO-23**: Cost tracking (P3): расход токенов / $ по задаче, агенту, проекту
-- **FR-AO-24**: Agent efficiency analytics: какой тип задачи стоит сколько, success rate по категориям
-- **FR-AO-25**: Cycle time by agent (как Linear): сравнение эффективности разных агентов и людей
+#### 5.4.3 L3: MCP Server
+- **FR-AI-20**: Bobr MCP Server (Streamable HTTP) — AI-агенты подключают Bobr как MCP tool provider
+- **FR-AI-21**: MCP tools: `read_backlog`, `add_backlog_item`, `get_change`, `create_change`, `read_spec`, `search_knowledge`, `get_project_status`
+- **FR-AI-22**: Dynamic tool descriptions: MCP tools включают текущий project context в описаниях (агент знает что за проект)
+- **FR-AI-23**: OAuth 2.1 авторизация для cloud-hosted MCP server (как Linear MCP)
+
+#### 5.4.4 Context Generation (P7)
+- **FR-AI-30**: `bobr context generate` собирает: relevant specs + requirements + active changes + conventions → один файл
+- **FR-AI-31**: Smart context selection: включает только релевантные specs для конкретной задачи (по dependency graph)
+- **FR-AI-32**: Negative constraints: секция "DO NOT" в сгенерированном контексте
+- **FR-AI-33**: Per-agent format: `--format claude` (CLAUDE.md), `--format codex` (AGENTS.md), `--format cursor` (.cursorrules)
+
+#### 5.4.5 Agent Activity Tracking
+- **FR-AI-40**: Агент регистрирует свою работу: `bobr activity log --agent "claude-code" --task BL-42 --action "created PR #123"`
+- **FR-AI-41**: Автоматический tracking через MCP (каждый tool call логируется)
+- **FR-AI-42**: Cost tracking: агент (или wrapper) сообщает token usage через `bobr activity cost --tokens-in X --tokens-out Y`
+- **FR-AI-43**: Agent efficiency dashboard (web UI, later phases): cycle time by agent type, success rate, cost per task
 
 ### 5.5 Module: Delivery Pipeline
 
@@ -379,24 +404,24 @@ Post-merge reflection: AI создаёт follow-up issues для code review fin
 - **FR-TC-21**: Per-person view: мои задачи, мои PR, мои reviews (включая "мои агенты")
 - **FR-TC-22**: Project health: requirements coverage, spec freshness, test coverage, agent success rate
 
-### 5.7 Module: Integration Layer (MCP-native)
+### 5.7 Module: External Integrations
 
-> Bobr как MCP-сервер и MCP-клиент.
+> Синхронизация с внешними системами и автоматизация.
 
-#### 5.7.1 MCP Server
-- **FR-IL-01**: Bobr MCP Server: AI-агенты (Claude Code, Cursor, Codex) могут read/write backlog, specs, requirements через MCP
-- **FR-IL-02**: OAuth 2.1 авторизация (как Linear MCP)
-- **FR-IL-03**: Dynamic tool hiding: агент видит только релевантные tools (как iceener/linear-streamable-mcp)
-
-#### 5.7.2 Bidirectional Sync
+#### 5.7.1 Bidirectional Sync
 - **FR-IL-10**: Import из Jira/Linear/GitHub Issues → Bobr backlog
 - **FR-IL-11**: Export из Bobr → Jira/Linear (для enterprise, где Jira — system of record)
-- **FR-IL-12**: Continuous sync mode: изменения в обоих направлениях (решает проблему "bidirectional sync friction")
+- **FR-IL-12**: Continuous sync mode: изменения в обоих направлениях
 
-#### 5.7.3 Automation Hooks
-- **FR-IL-20**: Event-driven hooks (P5): on_task_created, on_pr_merged, on_agent_stuck, on_review_approved
+#### 5.7.2 Automation Hooks
+- **FR-IL-20**: Event-driven hooks (P5): on_task_created, on_pr_merged, on_review_approved
 - **FR-IL-21**: Webhook integrations: Slack notifications, GitHub Actions triggers
 - **FR-IL-22**: n8n / Zapier compatibility: HTTP webhooks для no-code automation
+
+#### 5.7.3 Git & Deploy
+- **FR-IL-30**: GitHub/GitLab integration: PR creation, status checks, webhooks
+- **FR-IL-31**: Deploy preview: Render/Vercel/Netlify PR preview linking
+- **FR-IL-32**: PR ↔ task ↔ spec linking (traceability через git metadata)
 
 ---
 
@@ -409,7 +434,8 @@ Post-merge reflection: AI создаёт follow-up issues для code review fin
 - **NFR-03**: CLI-first: основные операции доступны из терминала (для разработчиков и агентов)
 - **NFR-04**: Git-native + Cloud-synced: артефакты в git, метаданные/embeddings/sessions в cloud
 - **NFR-05**: Event-driven: все действия генерируют события (P5)
-- **NFR-06**: MCP-native: Bobr одновременно MCP server (для агентов) и MCP client (для external tools)
+- **NFR-06**: Tool Provider: Bobr — инструмент для AI-агентов (L1: files, L2: CLI, L3: MCP), не AI consumer. Zero LLM dependency в ядре
+- **NFR-07**: Agent-agnostic: работает с любым агентом, который умеет читать файлы, вызывать CLI или подключать MCP
 
 ### 6.2 Производительность
 
@@ -431,7 +457,7 @@ Post-merge reflection: AI создаёт follow-up issues для code review fin
 - **NFR-30**: Git hosting: GitHub (primary), GitLab, Bitbucket
 - **NFR-31**: Deploy: Render (primary), Vercel, Netlify, Fly.io
 - **NFR-32**: Communication: Slack, email (Gmail/Outlook)
-- **NFR-33**: AI Agents: Claude Code (primary), Codex, Cursor, GitHub Copilot, custom
+- **NFR-33**: AI Agents (через L1/L2/L3): Claude Code, Cursor, Codex, Copilot, Devin, Jules, custom — любой, без привязки
 - **NFR-34**: PM Import: Jira, Linear, GitHub Issues, Notion
 - **NFR-35**: Middleware: Composio (250+ tools), n8n
 
@@ -672,25 +698,30 @@ project-repo/
 
 ### 10.1 Архитектура
 
+Bobr — tool provider. AI-агенты работают с Bobr, а не наоборот.
+
 ```
-┌──────────────────────────────────────────────────────────────────┐
+┌─────────────────────────────────────────────────────────────────┐
+│                       AI AGENTS (external)                       │
+│  Claude Code │ Cursor │ Codex │ Devin │ Jules │ Copilot │ ...   │
+├──────┬───────────────┬──────────────────────────────────────────┤
+│      │               │                                          │
+│  L1: Files       L2: CLI              L3: MCP Server            │
+│  .bobr/* r/w     bobr --output json   Streamable HTTP           │
+│      │               │                     │                    │
+├──────┴───────────────┴─────────────────────┴────────────────────┤
 │                         Web UI (React)                            │
 ├──────────────────────────────────────────────────────────────────┤
-│                  CLI (bobr init/add/run/...)                   │
-├──────────────────────────────────────────────────────────────────┤
-│                    MCP Server (Streamable HTTP)                    │
-├──────────────────────────────────────────────────────────────────┤
 │                        API (FastAPI)                               │
-├───────────┬───────────┬───────────┬───────────┬─────────────────┤
-│ Knowledge │ Require-  │ Backlog   │ Agent     │ Integration     │
-│ Base      │ ments     │ & Specs   │ Orchestr. │ Layer           │
-│ Service   │ Service   │ Service   │ Service   │ (MCP, Jira, ..) │
-├───────────┴───────────┴───────────┴───────────┴─────────────────┤
+├───────────┬───────────┬───────────┬─────────────────────────────┤
+│ Knowledge │ Require-  │ Backlog   │ External                    │
+│ Base      │ ments     │ & Specs   │ Integrations                │
+│ Service   │ Service   │ Service   │ (Jira, GitHub, Render, ..)  │
+├───────────┴───────────┴───────────┴─────────────────────────────┤
 │      PostgreSQL + pgvector  │  S3/MinIO   │  Redis (events/q)   │
 ├─────────────────────────────┴─────────────┴─────────────────────┤
-│   Git Integration   │  Deploy Integration  │  Agent Runtimes     │
-│   (GitHub/GitLab)   │  (Render/Vercel)     │  (Claude/Codex/..)  │
-└─────────────────────┴──────────────────────┴────────────────────┘
+│                .bobr/ (git-native file storage)                   │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### 10.2 Выбор технологий
@@ -700,14 +731,14 @@ project-repo/
 | Backend API | Python / FastAPI | Опыт команды (Expecto), async, быстрый |
 | Frontend | React + TypeScript + Tailwind | Опыт команды, зрелая экосистема |
 | Database | PostgreSQL + pgvector | Multi-tenant, JSONB, vector search — один сервис вместо двух |
-| File storage | S3 / MinIO | Документы, транскрипты, артефакты, agent logs |
-| Queue/Events | Redis + arq | Async agent orchestration, event bus (P5) |
-| CLI | Python (Typer) | Интеграция с backend, знакомо разработчикам |
-| MCP Server | Streamable HTTP (Python) | Стандарт, OAuth 2.1, как Linear MCP |
+| File storage | S3 / MinIO | Документы, транскрипты, артефакты |
+| Queue/Events | Redis + arq | Event bus (P5), async jobs |
+| CLI | Python (Typer) | L2 agent interface; `--output json` на всех командах |
+| MCP Server | Streamable HTTP (Python) | L3 agent interface; стандарт, OAuth 2.1 |
 | Auth | Auth0 | Проверено на Expecto, SSO ready |
-| AI | Claude API (primary), OpenAI, Google | Multi-provider для analysis + code review |
-| Agent runtime | Claude Code CLI, Codex CLI | Запуск в isolated environments |
 | Deploy | Render | Proven, PR preview из коробки |
+
+**Намеренно отсутствует**: AI/LLM dependency. Bobr не вызывает Claude API, OpenAI или Google AI. Вся AI-логика — на стороне агентов, работающих с Bobr.
 
 ### 10.3 Двойное хранение (Git + Cloud)
 
@@ -764,53 +795,46 @@ project-repo/
 
 ```
 Phase 0 (сейчас):
-  Бэклог Bobr ведётся в .claude/ + OpenSpec (как Expecto)
-  PRD — этот документ
-  Code пишет Claude Code
+  PRD — этот документ. Code пишет Claude Code.
+  Claude Code читает PRD напрямую (L1: files) — AI на стороне агента.
 
-Phase 0.5 (Week 2–3):
+Phase 0 done (Week 3):
   bobr init создаёт .bobr/ в репозитории Bobr
-  Бэклог Bobr мигрирует из .claude/openspec → .bobr/backlog/
-  ► С этого момента бэклог Bobr ведётся в формате Bobr
+  bobr backlog add/list работает (L2: CLI)
+  ► Claude Code использует bobr CLI + читает .bobr/ файлы
 
-Phase 1 (Week 4–5):
-  CLI bobr backlog add/list/edit работает
-  ► С этого момента все задачи Bobr добавляются через CLI Bobr
+Phase 1 (Week 5–6):
+  Change workflow + MCP server работают
+  Claude Code подключает Bobr MCP Server (L3)
+  ► Каждая фича Bobr — Change с proposal + design + tasks
+  ► Claude Code работает с бэклогом через MCP tools
 
-Phase 1.5 (Week 6–7):
-  Change workflow работает (proposal → design → tasks)
-  ► С этого момента каждая фича Bobr проходит через change workflow Bobr
+Phase 2 (Week 9–10):
+  bobr context generate собирает контекст для агента
+  ► Claude Code получает CLAUDE.md из .bobr/specs/ + requirements
+  ► PR creation + deploy preview через Bobr
 
-Phase 2 (Week 8–9):
-  Agent execution + PR creation работает
-  ► С этого момента фичи Bobr реализуются агентами, запущенными из Bobr
+Phase 3 (Week 13+):
+  Knowledge Base + Web UI + Team
+  ► PRD, research docs — в Knowledge Base
+  ► Команда (2+ человека) работает в Bobr
 
-Phase 2.5 (Week 10):
-  Context injection + specs работают
-  ► С этого момента агенты получают спеки Bobr из .bobr/specs/
-
-Phase 3 (Week 12+):
-  Knowledge Base работает
-  ► PRD, research docs, meeting notes — в Knowledge Base Bobr
-
-Full loop (Week 14+):
-  Requirement → Spec → Agent → PR → Preview → Verify → Archive
-  ► Весь цикл разработки Bobr идёт через Bobr
+Full loop (Week 15+):
+  Requirement → Spec → Change → Agent (external) → PR → Preview → Verify → Archive
+  ► Весь цикл. Bobr — tool provider, агенты — executors.
 ```
 
 ### 12.3 Acceptance Criteria для каждой фазы
 
 Каждая фаза считается завершённой только когда **Bobr начинает использовать результат этой фазы для собственной разработки**:
 
-| Фаза | Acceptance Criteria (dogfooding) |
-|------|----------------------------------|
-| Phase 0.5 | `.bobr/` структура существует в репозитории Bobr; PRD и backlog items мигрированы |
-| Phase 1 | Все новые backlog items создаются через `bobr backlog add`; ни один item не создаётся вручную |
-| Phase 1.5 | Каждая новая фича Bobr оформлена как Change с proposal.md + design.md + tasks.md |
-| Phase 2 | Минимум 50% задач Bobr выполняются агентами через `bobr agent run` |
-| Phase 2.5 | Агенты получают контекст из `.bobr/specs/` и `.bobr/requirements/` |
-| Phase 3 | Этот PRD, deep research, и все meeting notes доступны через Knowledge Base Bobr |
-| Full loop | 100% фич Bobr проходят полный цикл: backlog → change → agent → PR → verify → archive |
+| Фаза | Acceptance Criteria (dogfooding) | Agent level |
+|------|----------------------------------|-------------|
+| Phase 0 | `.bobr/` структура в репозитории Bobr; backlog items через CLI; Claude Code читает `.bobr/` | L1 + L2 |
+| Phase 1 | Каждая фича — Change; Claude Code подключает Bobr MCP Server | L1 + L2 + L3 |
+| Phase 2 | Агенты получают контекст через `bobr context generate`; PR создаётся через Bobr | L1 + L2 + L3 + context |
+| Phase 3 | PRD и docs в Knowledge Base; команда 2+ человек в Bobr ежедневно | Full stack |
+| Full loop | 100% фич: backlog → change → agent (external) → PR → verify → archive | Full stack |
 
 ### 12.4 Почему это важно
 
@@ -828,7 +852,8 @@ Full loop (Week 14+):
 | `.bobr/` формат — первый артефакт | Специфицируется и реализуется до API/DB |
 | Single-user mode должен работать без сервера | CLI + git-native = полностью локальный workflow; server — для team features |
 | Миграция из OpenSpec должна быть автоматической | `bobr migrate --from openspec` — часть Phase 0.5 |
-| Agent execution через Claude Code CLI | Не нужен свой agent runtime сразу; используем `claude --worktree` |
+| Bobr не вызывает AI | Zero LLM dependency; агенты работают с Bobr, не наоборот |
+| L1 (files) работает сразу, L2 (CLI) — Phase 0, L3 (MCP) — Phase 1 | Инкрементальное расширение agent interface |
 
 ---
 
@@ -838,50 +863,57 @@ Full loop (Week 14+):
 
 ### Phase 0: Bootstrap (Weeks 1–3)
 
-**Цель**: `.bobr/` формат + CLI для бэклога. К концу фазы бэклог Bobr ведётся в Bobr.
+**Цель**: `.bobr/` формат + CLI для бэклога (L1 + L2). К концу фазы бэклог Bobr ведётся в Bobr.
 
-**Dogfooding milestone**: Бэклог Bobr мигрирован из OpenSpec → `.bobr/`, все новые items через CLI.
+**Dogfooding milestone**: Бэклог Bobr создан в `.bobr/`, все новые items через CLI.
+
+**Agent interface level**: L1 (files) + L2 (CLI)
 
 - [ ] `.bobr/` format specification (YAML frontmatter + Markdown)
 - [ ] CLI scaffolding (Python/Typer): `bobr init`
-- [ ] `bobr backlog add` / `list` / `edit` / `drop`
-- [ ] `bobr backlog explore` (AI read-only analysis)
+- [ ] `bobr backlog add` / `list` / `edit` / `drop` (с `--output json`)
+- [ ] `bobr validate` — проверка корректности .bobr/ структуры
+- [ ] `bobr status` — текущее состояние проекта (machine-readable)
 - [ ] INDEX.md auto-generation
-- [ ] `bobr migrate --from openspec` (миграция из Expecto-формата)
-- [ ] **Migrate Bobr's own backlog** — PRD items → `.bobr/backlog/`
+- [ ] **Создать бэклог Bobr** — PRD items → `.bobr/backlog/`
 - [ ] Git-native storage: все операции = file writes + git commits
 
-**Не нужно для этой фазы**: API server, database, web UI, auth.
+**Не нужно для этой фазы**: API server, database, web UI, auth, AI/LLM.
 
-### Phase 1: Spec-Driven Loop (Weeks 4–6)
+**Как агенты работают с Bobr на этом этапе**: Claude Code читает `.bobr/` файлы напрямую (L1) и вызывает `bobr` CLI (L2). Никакой специальной интеграции не нужно — агент уже умеет читать файлы и запускать shell-команды.
 
-**Цель**: Change workflow работает. К концу фазы каждая фича Bobr оформляется как Change.
+### Phase 1: Spec-Driven Loop + MCP (Weeks 4–6)
 
-**Dogfooding milestone**: Фичи Phase 2 спланированы как Changes с proposal + design + tasks в `.bobr/`.
+**Цель**: Change workflow + MCP server. К концу фазы каждая фича Bobr оформляется как Change, агенты подключаются через MCP.
+
+**Dogfooding milestone**: Фичи Phase 2 спланированы как Changes. Claude Code подключает Bobr как MCP server.
+
+**Agent interface level**: L1 + L2 + L3 (MCP)
 
 - [ ] `bobr change new` / `continue` / `ff` (fast-forward)
-- [ ] Change артефакты: proposal.md → design.md → tasks.md (AI-generated, human-reviewed)
+- [ ] Change артефакты: proposal.md → design.md → tasks.md
 - [ ] `bobr change verify` / `archive`
+- [ ] `bobr context generate` — сборка AGENTS.md / CLAUDE.md из specs + requirements
 - [ ] Delta specs + sync to main specs
-- [ ] Dependency tracking между changes
 - [ ] Epics: `bobr backlog epic-add` / `epic-list`
+- [ ] **MCP Server (stdio)**: `read_backlog`, `add_item`, `get_change`, `get_status` — Claude Code / Cursor подключаются как MCP tool
 - [ ] **Plan Phase 2 features as Changes** — собственные фичи проходят через workflow
 
-### Phase 2: Agent Execution (Weeks 7–10)
+### Phase 2: Delivery Loop (Weeks 7–10)
 
-**Цель**: AI-агент берёт задачу, пишет код, создаёт PR. К концу фазы 50%+ задач Bobr выполняются агентами через Bobr.
+**Цель**: Полный цикл task → context → PR → preview. К концу фазы агенты (внешние, не Bobr) выполняют задачи Bobr, используя Bobr как tool provider.
 
-**Dogfooding milestone**: Агент запускается через `bobr agent run`, получает context из `.bobr/specs/`, создаёт PR.
+**Dogfooding milestone**: Claude Code берёт задачу из `.bobr/`, получает context через `bobr context generate`, создаёт PR.
 
-- [ ] `bobr agent run <task-id>` — запуск Claude Code на задачу
-- [ ] Context injection: `.bobr/specs/` + `.bobr/requirements/` → AGENTS.md auto-generation
-- [ ] Isolated worktree execution (`git worktree add`)
-- [ ] PR creation (GitHub API) с link к task/change
+- [ ] `bobr context generate --task <id>` — контекст для конкретной задачи (relevant specs + requirements)
+- [ ] `bobr context generate --format claude|codex|cursor` — per-agent format
+- [ ] `bobr activity log` — агент регистрирует свою работу (CLI + MCP tool)
+- [ ] `bobr activity cost` — tracking token usage
+- [ ] GitHub integration: PR creation с link к task/change
 - [ ] Render deploy preview integration
-- [ ] Agent monitoring: status, logs, token cost (CLI output + log files)
-- [ ] MCP Server (basic): AI-агенты читают backlog/specs через MCP
-- [ ] Event hooks: on_task_created, on_pr_merged (shell scripts, как Claude Code hooks)
-- [ ] **Execute Bobr tasks with Bobr agents** — собственные задачи выполняются через `bobr agent run`
+- [ ] MCP Server расширение: `create_change`, `log_activity`, `search_knowledge`
+- [ ] Event hooks: on_task_created, on_pr_merged (shell scripts)
+- [ ] **Агенты выполняют задачи Bobr** — Claude Code использует `bobr context generate` + MCP tools
 
 ### Phase 3: Knowledge & Team (Weeks 11–14)
 
