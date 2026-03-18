@@ -1,0 +1,11 @@
+{
+  "name": "bobr",
+  "version": "0.1.0",
+  "description": "Bobr integration — backlog, requirements, specs management for AI agents",
+  "author": {
+    "name": "usebobr",
+    "url": "https://github.com/usebobr/Bobr"
+  },
+  "license": "AGPL-3.0",
+  "keywords": ["bobr", "backlog", "requirements", "specs", "project-management"]
+}
