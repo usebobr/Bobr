@@ -141,18 +141,83 @@ Phase 0 реализовала `.bobr/` формат + CLI для бэклога
 
 ## 4. Scope: что делать дальше
 
-### Phase 0.5a: `/bobr:feature` skill (1-2 недели)
+### Phase 0.5a: Все skills + два новых агента
 
-**Цель**: Начать вести разработку Bobr через `/bobr:feature`.
+**Цель**: Полный набор терминальных интерфейсов для workflow.
 
-1. **`/bobr:feature` skill** — guided workflow: explore → design → implement → verify
-   - Это порт Expecto workflow в формальный skill
-   - Создаёт задачи в `.bobr/backlog/`, спеки в `.bobr/specs/`
-   - Использует sub-agents (explorer, architect)
-2. **`/bobr:init`** — bootstrap `.bobr/` структуры (нужен для feature)
-3. **`/bobr:status`** — быстрый обзор проекта в терминале
+#### Существующее (доработать)
 
-**Dogfooding**: следующую фичу Bobr разрабатываем через `/bobr:feature`.
+| Компонент | Статус | Что нужно |
+|---|---|---|
+| `/bobr:feature` skill | Есть (9 фаз) | Адаптировать под новых агентов |
+| `/bobr:status` skill | Есть | Расширить — показывать requirements, knowledge |
+| `/bobr:add` skill | Есть | Войдёт в `/bobr:backlog` |
+| `/bobr:claim` skill | Есть | Войдёт в `/bobr:backlog` |
+| `/bobr:done` skill | Есть | Войдёт в `/bobr:backlog` |
+| `/bobr:ready` skill | Есть | Войдёт в `/bobr:backlog` |
+| `bobr-explorer` agent | Есть | Без изменений |
+| `bobr-architect` agent | Есть | Без изменений |
+| `bobr-reviewer` agent | Есть | Без изменений |
+
+#### Новые skills
+
+1. **`/bobr:init`** — bootstrap `.bobr/` в новом проекте
+   - Создаёт структуру директорий, config.yaml
+   - Настраивает `.claude/` (CLAUDE.md, plugin registration)
+   - "Подключил Bobr к проекту за 1 команду"
+
+2. **`/bobr:backlog`** — единая точка входа для управления бэклогом
+   - Заменяет отдельные add/claim/done/ready
+   - Без аргументов: интерактивное меню (что готово, что в работе, добавить)
+   - С аргументами: `/bobr:backlog add "title"`, `/bobr:backlog ready`, etc.
+   - Использует `bobr-backlog` агента для сложных операций (grooming, breakdown)
+
+3. **`/bobr:requirements`** — управление требованиями
+   - Создание/редактирование requirements документов в `.bobr/requirements/`
+   - Анализ существующих требований на полноту и противоречия
+   - Использует `bobr-requirements` агента
+   - Без аргументов: обзор + предложение следующего действия
+   - С аргументами: `/bobr:requirements add "..."`, `/bobr:requirements review`
+
+4. **`/bobr:knowledge`** — управление базой знаний
+   - CRUD для `.bobr/knowledge/` документов
+   - Запись результатов исследований, встреч, решений
+   - `/bobr:knowledge add "research: ..."`, `/bobr:knowledge search "..."`
+
+#### Новые агенты
+
+5. **`bobr-backlog` agent** — специалист по управлению бэклогом
+   - **Breakdown**: разбивает крупную фичу на конкретные задачи с зависимостями
+   - **Grooming**: анализирует бэклог, предлагает приоритеты, находит дубликаты
+   - **Dependencies**: строит граф зависимостей, находит циклы, предлагает порядок
+   - **Estimation**: оценивает сложность задач на основе кодовой базы
+   - Работает с `.bobr/backlog/` файлами через `bobr` CLI
+   - Tools: Glob, Grep, Read, Bash, TodoWrite
+   - Model: sonnet
+
+6. **`bobr-requirements` agent** — специалист по требованиям
+   - **Analysis**: анализирует требования на полноту, непротиворечивость, тестируемость
+   - **Gap detection**: находит пробелы — что не описано, что неоднозначно
+   - **Traceability**: связывает требования ↔ задачи ↔ спецификации
+   - **Refinement**: помогает формулировать требования чётче (acceptance criteria, edge cases)
+   - Работает с `.bobr/requirements/` и `.bobr/backlog/` файлами
+   - Tools: Glob, Grep, Read, Bash, TodoWrite
+   - Model: sonnet
+
+#### Итого после Phase 0.5a
+
+```
+Skills (slash-commands):           Agents (sub-agents):
+─────────────────────────          ─────────────────────
+/bobr:init                         bobr-explorer      (sonnet, жёлтый)
+/bobr:feature  ←существует         bobr-architect     (opus, зелёный)
+/bobr:backlog  ←объединяет 4       bobr-reviewer      (sonnet, красный)
+/bobr:requirements  ←новый         bobr-backlog       (sonnet, НОВЫЙ)
+/bobr:knowledge     ←новый         bobr-requirements  (sonnet, НОВЫЙ)
+/bobr:status   ←существует
+```
+
+**Dogfooding**: следующую фичу Bobr разрабатываем через `/bobr:feature`, бэклог ведём через `/bobr:backlog`, требования — через `/bobr:requirements`.
 
 ### Phase 0.5b: Web Dashboard MVP (параллельно или сразу после)
 
