@@ -81,6 +81,27 @@ bobr init [PATH]
 
 Never stop after step 4. Always follow through to step 5.
 
+## Available Skills (Slash Commands)
+
+| Skill | Description |
+|---|---|
+| `/bobr:feature` | Guided 9-phase feature development |
+| `/bobr:backlog` | Unified backlog management (list, add, claim, done, groom, breakdown) |
+| `/bobr:requirements` | Requirements management (add, review, gaps, refine) |
+| `/bobr:knowledge` | Knowledge base (add research, decisions, meeting notes, search) |
+| `/bobr:status` | Full project overview (backlog + requirements + knowledge) |
+| `/bobr:init` | Initialize Bobr in a new project |
+
+## Available Agents
+
+| Agent | Model | Purpose |
+|---|---|---|
+| `bobr-explorer` | sonnet | Deep codebase analysis and tracing |
+| `bobr-architect` | opus | Architecture design and blueprints |
+| `bobr-reviewer` | sonnet | Code review (bugs, conventions, quality) |
+| `bobr-backlog` | sonnet | Backlog grooming, feature breakdown, dependencies |
+| `bobr-requirements` | sonnet | Requirements analysis, gap detection, refinement |
+
 ## Feature Development Workflow
 
 Use `/bobr:feature` for guided feature development through 9 phases:

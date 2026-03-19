@@ -28,7 +28,7 @@ You are guiding a developer through a complete feature development lifecycle usi
 
 ## Phase 1: Discovery
 
-**Goal**: Understand what needs to be built and set up tracking.
+**Goal**: Understand what needs to be built, check requirements alignment, and set up tracking.
 
 **Input resolution** — determine the backlog item:
 
@@ -47,9 +47,10 @@ If `$ARGUMENTS` is free text:
 
 **After resolving the item:**
 1. Auto-claim: `uv run bobr backlog claim <BL-ID> --assignee claude -o json`
-2. Create TodoWrite list covering all 9 phases
-3. Summarize: "I'll be working on: **[title]**. Here's what I understand: [summary from item body]. Confirm?"
-4. Wait for user confirmation before proceeding
+2. **Requirements check**: Scan `.bobr/requirements/` for related requirements. If requirements exist, summarize how this task connects. If no requirements cover this area, note it.
+3. Create TodoWrite list covering all 9 phases
+4. Summarize: "I'll be working on: **[title]**. Here's what I understand: [summary from item body]. Requirements: [connected/none found]. Confirm?"
+5. Wait for user confirmation before proceeding
 
 ---
 
@@ -238,7 +239,7 @@ What would you like to do?
 
 ## Phase 8: Finalize
 
-**Goal**: Update documentation, verify and archive the OpenSpec change.
+**Goal**: Update documentation, verify, archive, and update knowledge base.
 
 **Actions**:
 1. Ask user: "Did this feature introduce any new conventions that should be documented in CLAUDE.md?"
@@ -254,7 +255,9 @@ What would you like to do?
    openspec archive --change "<name>"
    ```
 
-4. Mark all TodoWrite items complete
+4. **Knowledge capture**: If significant decisions were made during this feature (Phase 3 choices, Phase 4 architecture decision), record them in `.bobr/knowledge/decision-<feature-slug>.md` with ADR format.
+
+5. Mark all TodoWrite items complete
 
 ---
 
