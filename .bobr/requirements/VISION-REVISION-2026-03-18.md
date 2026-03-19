@@ -10,22 +10,23 @@ Phase 0 реализовала `.bobr/` формат + CLI для бэклога
 
 ### Настоящий инсайт
 
-**Я пытался вынести свой рабочий workflow в отдельный инструмент, хотя он и так работал — как набор плагинов внутри Claude Code.**
+**Я пытался воссоздать свой workflow из Expecto как отдельный инструмент, хотя на самом деле мне нужно упаковать ВЕСЬ свой workflow — данные, процесс и интерфейс — в воспроизводимый, переносимый формат.**
 
 На Expecto у меня было:
 - `/backlog` — slash-команды для управления задачами
 - `/openspec` — slash-команды для spec-driven development
 - Requirements management — через взаимодействие с Claude Code
+- Это всё жило в `.claude/` конфигурациях, в плагинах, в моей голове
 
-Это работало. Агент знал процесс, следовал ему, хранил артефакты в файлах. Я общался с агентом на естественном языке — агент управлял структурированными данными.
+Это работало, но **не переносилось** между проектами и людьми.
 
-**Я пытался построить CLI/платформу, но value был не в CLI — value в том, что агент знает КАК работать.** А это делается через плагины (skills), кастомные slash-команды, и агентов.
+**Phase 0 ошибка: я начал строить CLI (инструмент), тогда как мне нужно было строить workflow (процесс + данные + интерфейс).**
 
 ### Что PRD v0.8 делал не так
 
-1. **Путал "данные" и "процесс"** — `.bobr/` формат хранения это нормально, но CLI для управления — лишний слой. Агент и так умеет работать с файлами.
-2. **Строил отдельный инструмент вместо расширения существующего** — Claude Code уже есть, Cursor уже есть. Нужно расширять их, а не конкурировать.
-3. **Забыл кто мой реальный "пользователь"** — я разговариваю с Claude Code, а не с CLI. CLI нужен агенту как деталь реализации, но не мне как интерфейс.
+1. **Путал инструмент и workflow** — CLI это деталь реализации, а не продукт. Продукт — это воспроизводимый процесс разработки.
+2. **Не определил интерфейс для человека** — CLI неудобен для обзора и управления. Нужен и терминал (для работы с агентом), и web (для обзора картины).
+3. **Слишком много концепций** — requirements (Вигерс), specs (OpenSpec), changes, knowledge base, consumer interfaces, Runner — каждая сама по себе продукт.
 
 ---
 
@@ -33,122 +34,167 @@ Phase 0 реализовала `.bobr/` формат + CLI для бэклога
 
 ### 2.1 Одно предложение
 
-**Bobr — набор плагинов (skills), методов и агентов для Claude Code, которые учат его вести структурированную разработку: управлять требованиями, бэклогом, спецификациями и знаниями проекта.**
+**Bobr — воспроизводимый workflow для структурированной разработки с AI-агентами, включающий данные (`.bobr/`), процесс (skills + agents), и два интерфейса: терминал (Claude Code) для работы и web dashboard для обзора.**
 
-### 2.2 Ключевой инсайт
-
-Проблема "люди хотят Notion, агенты хотят файлы" решается не двумя интерфейсами, а одним: **человек разговаривает с агентом, агент управляет файлами**.
+### 2.2 Три слоя Bobr
 
 ```
-  Человек                     Агент (Claude Code)                  Данные
-  ───────                     ──────────────────                   ──────
-
-  "добавь задачу             /bobr:backlog add                    .bobr/backlog/
-   про авторизацию"    →     (skill / slash-cmd)            →     task-auth-abc1.md
-                                                                  (YAML + MD)
-  "что готово к работе?"     /bobr:ready                          .bobr/backlog/*.md
-                       →     (читает, фильтрует)            →     → ответ на естественном языке
-
-  "спроектируй фичу X"      /bobr:feature                        .bobr/specs/
-                       →     (11-phase workflow              →     proposal.md
-                              с агентами-специалистами)            design.md
-                                                                  tasks.md
+┌─────────────────────────────────────────────────────────────┐
+│                      ИНТЕРФЕЙСЫ                             │
+│                                                             │
+│   ┌──────────────────────┐    ┌──────────────────────────┐  │
+│   │   Terminal            │    │   Web Dashboard          │  │
+│   │   (Claude Code)       │    │   (обзор + управление)   │  │
+│   │                       │    │                          │  │
+│   │  /bobr:feature        │    │  Бэклог (kanban/list)    │  │
+│   │  /bobr:backlog        │    │  Requirements (pages)    │  │
+│   │  /bobr:requirements   │    │  Зависимости (граф)      │  │
+│   │  /bobr:status         │    │  Статус проекта          │  │
+│   │                       │    │                          │  │
+│   │  → для РАБОТЫ         │    │  → для ОБЗОРА            │  │
+│   └───────────┬───────────┘    └────────────┬─────────────┘  │
+│               │                             │                │
+│               └──────────┬──────────────────┘                │
+│                          │                                   │
+├──────────────────────────┼───────────────────────────────────┤
+│                      ПРОЦЕСС                                │
+│                          │                                   │
+│   Skills (slash-commands) + Agents (sub-agents)              │
+│                                                              │
+│   /bobr:feature  = explore → design → implement → verify     │
+│   /bobr:backlog  = add, ready, claim, done                   │
+│   bobr-explorer  = исследование кодовой базы                 │
+│   bobr-architect = проектирование решений                    │
+│   bobr-reviewer  = code review                               │
+│                                                              │
+├──────────────────────────┼───────────────────────────────────┤
+│                      ДАННЫЕ                                  │
+│                          │                                   │
+│   .bobr/  (git-native, YAML+MD, hash IDs)                   │
+│                                                              │
+│   .bobr/backlog/     — задачи                                │
+│   .bobr/requirements/ — требования                           │
+│   .bobr/knowledge/   — база знаний                           │
+│   .bobr/specs/       — спецификации                          │
+│   .bobr/config.yaml  — настройки проекта                     │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-**Человеку не нужен CLI и не нужен web UI. Человеку нужен агент, который знает процесс.**
+### 2.3 Два интерфейса — одни данные
 
-Для нетехнических пользователей (CEO/CFO) интерфейс — это Claude через Cowork/чат. Они тоже разговаривают с агентом, просто в другом контексте.
+| | Terminal (Claude Code) | Web Dashboard |
+|---|---|---|
+| **Для чего** | Работа: создание, редактирование, выполнение задач | Обзор: статус проекта, приоритеты, зависимости |
+| **Кто** | Разработчик + агент | Разработчик, PM, CEO |
+| **Как** | Slash-команды, естественный язык | Браузер, визуальные компоненты |
+| **Примеры** | `/bobr:feature "добавить авторизацию"` | Kanban-доска с задачами, граф зависимостей |
+| **Аналог** | Как работал Expecto workflow | Как Notion/Linear для обзора |
 
-### 2.3 Что такое Bobr
+**Ключевое**: терминал — для РАБОТЫ (агент делает), web — для ОБЗОРА (человек видит картину). Оба читают/пишут `.bobr/`.
 
-**Bobr = три компонента:**
+### 2.4 Что такое Bobr
 
-1. **Формат `.bobr/`** — структурированное хранение данных проекта в git (YAML+MD). Это data layer.
+**Bobr = упакованный workflow:**
 
-2. **Плагины (skills) для Claude Code** — slash-команды, которые реализуют workflow:
-   - `/bobr:backlog` — управление задачами (add, list, ready, claim, done)
-   - `/bobr:feature` — полный цикл разработки фичи (explore → design → implement → verify)
+1. **Данные** — формат `.bobr/` (git-native YAML+MD). Source of truth в репозитории.
+
+2. **Процесс** — skills и agents для Claude Code:
+   - `/bobr:backlog` — управление задачами
+   - `/bobr:feature` — полный цикл разработки фичи
    - `/bobr:requirements` — управление требованиями
-   - `/bobr:knowledge` — управление базой знаний проекта
+   - `/bobr:knowledge` — база знаний
+   - `bobr-explorer`, `bobr-architect`, `bobr-reviewer` — агенты-специалисты
 
-3. **Агенты-специалисты** — sub-agents для конкретных этапов:
-   - `bobr-explorer` — исследование кодовой базы
-   - `bobr-architect` — проектирование решений
-   - `bobr-reviewer` — code review
+3. **Интерфейс** — два входа в одни данные:
+   - **Terminal** (Claude Code) — для работы через естественный язык и slash-команды
+   - **Web dashboard** — для визуального обзора и управления (kanban, графы, страницы)
 
-### 2.4 Чем Bobr НЕ является
+### 2.5 Чем Bobr НЕ является
 
-- **Не отдельный CLI** — `bobr` CLI существует как utility для агента, но не как основной интерфейс для человека
-- **Не платформа** — нет своего web UI, нет своего сервера, нет своей БД
-- **Не замена Claude Code** — расширение, а не конкуренция
+- **Не просто CLI** — CLI может существовать как internal utility, но не это продукт
+- **Не просто плагины** — плагины без web dashboard не дают обзора, а это критично
+- **Не замена Claude Code** — расширение его возможностей + отдельный web для обзора
+- **Не Jira/Linear** — web dashboard read-heavy (обзор), а не write-heavy (управление)
 
-### 2.5 Куда девается то, что уже построено?
+### 2.6 Куда девается то, что уже построено?
 
 | Phase 0 артефакт | Судьба | Почему |
 |---|---|---|
-| `.bobr/` формат (YAML+MD, hash IDs) | **Сохраняется** | Data layer остаётся. Плагины работают с этими файлами |
-| `bobr` CLI | **Становится internal tool** | Плагины могут вызывать CLI, но человек общается с Claude Code |
-| SQLite cache | **Под вопросом** | Возможно избыточен, если агент и так может grep/parse файлы |
-| Worktree workflow | **Сохраняется** | Claude Code и так работает через worktrees |
+| `.bobr/` формат (YAML+MD, hash IDs) | **Сохраняется** | Data layer — основа всего |
+| `bobr` CLI | **Internal utility** | Skills и web dashboard могут вызывать CLI, но это не интерфейс для человека |
+| SQLite cache | **Сохраняется** | Web dashboard будет использовать для быстрых запросов |
+| Worktree workflow | **Сохраняется** | Claude Code работает через worktrees |
 
 ---
 
 ## 3. Принципы
 
-1. **Plugin-first, not tool-first** — расширяем существующих агентов (Claude Code), а не строим отдельный инструмент
-2. **Agent IS the interface** — человек общается с агентом на естественном языке, агент управляет структурированными данными
-3. **Git-native storage** — `.bobr/` в репозитории, версионируется с кодом
-4. **Structured process** — не просто "задачи", а workflow: requirements → specs → tasks → code → verify
-5. **Convention over configuration** — `.bobr/` структура, разумные defaults, zero setup
+1. **Workflow-first** — Bobr это не инструмент, а упакованный воспроизводимый процесс разработки
+2. **Two interfaces, one truth** — Terminal для работы, Web для обзора. Данные одни — `.bobr/`
+3. **Agent does, human sees** — агент выполняет работу (через skills), человек видит картину (через web dashboard)
+4. **Git-native storage** — `.bobr/` в репозитории, версионируется с кодом
+5. **Portable workflow** — подключил Bobr к новому проекту = получил тот же процесс
+6. **Convention over configuration** — `.bobr/` структура, разумные defaults, zero setup
 
 ---
 
 ## 4. Scope: что делать дальше
 
-### Немедленно (Phase 0.5: Plugin pivot)
+### Phase 0.5: Pivot — Skills + минимальный Web
 
-Превратить то, что уже есть, из standalone CLI в набор Claude Code skills:
+Превратить CLI workflow в skills + запустить минимальный web dashboard:
 
-1. **`/bobr:init`** — инициализация `.bobr/` в проекте
-2. **`/bobr:backlog`** — управление задачами (поверх существующего формата)
-3. **`/bobr:feature`** — guided workflow для разработки фичи
-4. **`/bobr:status`** — обзор состояния проекта
+**Terminal (Skills):**
+1. `/bobr:init` — инициализация `.bobr/` в проекте
+2. `/bobr:backlog` — управление задачами
+3. `/bobr:feature` — guided workflow для разработки фичи
+4. `/bobr:status` — обзор состояния проекта
 
-### Потом (Phase 1: Structured development)
+**Web Dashboard (минимум):**
+5. Read-only view бэклога (список/kanban)
+6. Статус проекта (сколько задач, что в работе)
+7. Reads from `.bobr/` + SQLite cache
 
-5. **`/bobr:requirements`** — управление требованиями
-6. **`/bobr:knowledge`** — база знаний проекта
-7. **Агенты-специалисты** — explorer, architect, reviewer
-8. **MCP Server** — для интеграции с Cursor, Copilot и другими агентами
+**Dogfooding**: я веду разработку Bobr через `/bobr:feature` в Claude Code, а картину проекта смотрю в web dashboard.
 
-### Позже (Phase 2: Team)
+### Phase 1: Structured development
 
-9. **Cowork интерфейс** — нетехнические пользователи через Claude Cowork
-10. **Multi-agent coordination** — несколько агентов работают над одним проектом
+8. `/bobr:requirements` — управление требованиями
+9. `/bobr:knowledge` — база знаний проекта
+10. Агенты-специалисты (explorer, architect, reviewer)
+11. Web dashboard: requirements pages, dependency graph
+12. MCP Server — для Cursor, Copilot, других агентов
+
+### Phase 2: Team
+
+13. Multi-user web dashboard
+14. Cowork интерфейс для нетехнических пользователей
+15. Multi-agent coordination
 
 ---
 
 ## 5. Открытые вопросы
 
-1. **CLI как dependency или как fallback?** — Плагины могут либо вызывать `bobr` CLI (проще), либо работать с файлами напрямую (меньше зависимостей). Что лучше?
+1. **Web dashboard технология** — Static site generator (читает `.bobr/` напрямую)? Или серверное приложение с API?
 
-2. **Scope первого плагина** — Начать с `/bobr:backlog` (самый простой) или с `/bobr:feature` (самый ценный)?
+2. **Scope первого skill** — Начать с `/bobr:backlog` (самый простой) или с `/bobr:feature` (самый ценный)?
 
-3. **Портабельность** — Если Bobr = плагины для Claude Code, как поддержать Cursor/Codex/Devin? MCP Server как universal layer?
+3. **Портабельность** — MCP Server как universal layer для не-Claude агентов?
 
-4. **Монорепо или отдельные пакеты?** — Плагины, агенты, CLI и MCP — в одном репо или разделить?
+4. **Монорепо** — Skills, agents, CLI, web dashboard — в одном репо или разделить?
 
 ---
 
 ## 6. Связь с текущим PRD
 
-Этот документ **требует переписывания PRD v0.8**. Изменилась не деталь — изменился product category:
+Этот документ **требует переписывания PRD v0.8**. Изменилась не деталь — изменилось понимание продукта:
 
 | | PRD v0.8 | Ревизия |
 |---|---|---|
-| **Категория** | AI-native PM platform | Plugin suite для AI coding agents |
-| **Продукт** | Standalone CLI + Web UI + MCP | Skills + Agents для Claude Code |
-| **Интерфейс для человека** | CLI → Web UI | Естественный язык через Claude Code |
-| **Конкуренты** | Taskmaster, Linear, Devin | Claude Code plugins, Kiro hooks, CLAUDE.md conventions |
-| **Монетизация** | AGPL core + Cloud SaaS | Open-source plugins + premium agents/workflows? |
-| **Dogfooding тест** | "Я веду бэклог в Bobr CLI" | "Я говорю Claude `/bobr:feature` и он ведёт процесс" |
+| **Что это** | AI-native PM platform | Упакованный workflow (данные + процесс + интерфейс) |
+| **Продукт** | Standalone CLI + Web UI + MCP | Skills + Agents + Web Dashboard |
+| **Интерфейс для работы** | CLI | Terminal (Claude Code + skills) |
+| **Интерфейс для обзора** | Web UI (когда-нибудь) | Web Dashboard (с самого начала) |
+| **Конкуренты** | Taskmaster, Linear, Devin | Expecto workflow (свой же), Kiro hooks, CLAUDE.md conventions |
+| **Dogfooding тест** | "Я веду бэклог в Bobr CLI" | "Я работаю через `/bobr:feature`, смотрю статус в web dashboard" |
