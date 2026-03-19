@@ -141,48 +141,82 @@ Phase 0 реализовала `.bobr/` формат + CLI для бэклога
 
 ## 4. Scope: что делать дальше
 
-### Phase 0.5: Pivot — Skills + минимальный Web
+### Phase 0.5a: `/bobr:feature` skill (1-2 недели)
 
-Превратить CLI workflow в skills + запустить минимальный web dashboard:
+**Цель**: Начать вести разработку Bobr через `/bobr:feature`.
 
-**Terminal (Skills):**
-1. `/bobr:init` — инициализация `.bobr/` в проекте
-2. `/bobr:backlog` — управление задачами
-3. `/bobr:feature` — guided workflow для разработки фичи
-4. `/bobr:status` — обзор состояния проекта
+1. **`/bobr:feature` skill** — guided workflow: explore → design → implement → verify
+   - Это порт Expecto workflow в формальный skill
+   - Создаёт задачи в `.bobr/backlog/`, спеки в `.bobr/specs/`
+   - Использует sub-agents (explorer, architect)
+2. **`/bobr:init`** — bootstrap `.bobr/` структуры (нужен для feature)
+3. **`/bobr:status`** — быстрый обзор проекта в терминале
 
-**Web Dashboard (минимум):**
-5. Read-only view бэклога (список/kanban)
-6. Статус проекта (сколько задач, что в работе)
-7. Reads from `.bobr/` + SQLite cache
+**Dogfooding**: следующую фичу Bobr разрабатываем через `/bobr:feature`.
 
-**Dogfooding**: я веду разработку Bobr через `/bobr:feature` в Claude Code, а картину проекта смотрю в web dashboard.
+### Phase 0.5b: Web Dashboard MVP (параллельно или сразу после)
+
+**Цель**: Видеть картину проекта в браузере.
+
+**Стек**: Node.js server (Express) + REST API + React SPA
+
+4. **`bobr web`** — поднимает локальный сервер на localhost:3000
+5. **GET /api/tasks** — читает `.bobr/backlog/`, возвращает JSON
+6. **GET /api/status** — сводка проекта
+7. **Dashboard view** — список задач (table/kanban), статусы, приоритеты
+8. **Auto-refresh** — file watcher на `.bobr/`, WebSocket push
+
+```
+bobr web
+# → http://localhost:3000
+#
+# API:
+#   GET /api/tasks        → список задач из .bobr/backlog/
+#   GET /api/tasks/:id    → детали задачи
+#   GET /api/status       → сводка проекта
+#   GET /api/specs        → список спецификаций
+#
+# UI:
+#   /                     → dashboard (статус + последние изменения)
+#   /tasks                → список/kanban задач
+#   /tasks/:id            → детали задачи
+#
+# Позже (Phase 1):
+#   POST/PUT /api/tasks   → создание/редактирование через web
+#   /requirements         → страницы требований
+#   /graph                → граф зависимостей
+```
+
+**Read-only на старте** — пишем через терминал (skills), смотрим через web. Write-API добавим в Phase 1.
 
 ### Phase 1: Structured development
 
-8. `/bobr:requirements` — управление требованиями
-9. `/bobr:knowledge` — база знаний проекта
-10. Агенты-специалисты (explorer, architect, reviewer)
-11. Web dashboard: requirements pages, dependency graph
-12. MCP Server — для Cursor, Copilot, других агентов
+9. `/bobr:backlog` — полноценное управление задачами через skill
+10. `/bobr:requirements` — управление требованиями
+11. `/bobr:knowledge` — база знаний проекта
+12. Web dashboard: write API, requirements pages, dependency graph
+13. MCP Server — для Cursor, Copilot, других агентов
 
 ### Phase 2: Team
 
-13. Multi-user web dashboard
-14. Cowork интерфейс для нетехнических пользователей
-15. Multi-agent coordination
+14. Multi-user web dashboard (auth, roles)
+15. Cowork интерфейс для нетехнических пользователей
+16. Multi-agent coordination
 
 ---
 
-## 5. Открытые вопросы
+## 5. Решения и открытые вопросы
 
-1. **Web dashboard технология** — Static site generator (читает `.bobr/` напрямую)? Или серверное приложение с API?
+### Решено
 
-2. **Scope первого skill** — Начать с `/bobr:backlog` (самый простой) или с `/bobr:feature` (самый ценный)?
+1. ~~**Web dashboard технология**~~ → **Local server + REST API** (Express + React SPA). Начинаем read-only, write API в Phase 1.
+2. ~~**Scope первого skill**~~ → **`/bobr:feature`**. Самый ценный, сразу dogfood'им на себе.
 
-3. **Портабельность** — MCP Server как universal layer для не-Claude агентов?
+### Открыто
 
+3. **Портабельность** — MCP Server как universal layer для не-Claude агентов? (Phase 1)
 4. **Монорепо** — Skills, agents, CLI, web dashboard — в одном репо или разделить?
+5. **Web dashboard deployment** — только localhost, или позже облачный вариант? (Phase 2)
 
 ---
 
