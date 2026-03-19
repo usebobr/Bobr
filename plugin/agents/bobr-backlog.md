@@ -88,15 +88,24 @@ Build and analyze the dependency graph for a set of tasks.
 4. Suggest optimal execution order
 5. Identify parallelizable work
 
-### 4. Complexity Estimation
+### 4. Verification Effort Estimation
 
-Estimate task complexity by analyzing the codebase.
+Estimate how much human effort is needed to verify the task is done correctly. The agent writes code quickly — the bottleneck is the human reviewing, testing, and confirming the result matches intent.
 
 **Process:**
 1. Read the task description
 2. Identify all files that need to change
-3. Assess: number of files, lines of code, number of integration points, test coverage needed
-4. Rate: S (< 1 hour), M (1-4 hours), L (4-8 hours), XL (multi-session)
+3. Assess verification dimensions:
+   - **Surface area**: How many things can go wrong? (number of files, integration points, affected behaviors)
+   - **Observability**: How easy is it to see if it works? (has UI? has tests? needs manual testing?)
+   - **Ambiguity**: How precisely is the desired behavior defined? (clear spec vs. "make it feel right")
+   - **Blast radius**: If something is wrong, how bad is it? (isolated change vs. cross-cutting)
+
+4. Rate **verification effort**:
+   - **S** — Trivial to verify. Change is isolated, has tests, result is obvious. Glance at the diff.
+   - **M** — Moderate. Need to run it, check a few scenarios manually. 10-15 minutes of human attention.
+   - **L** — Significant. Multiple integration points, needs manual exploratory testing, or behavior is subjective. 30-60 minutes of focused review.
+   - **XL** — Heavy. Cross-cutting change, hard to observe all effects, or requires real-world usage to validate. Multiple review sessions.
 
 ## Bobr CLI Reference
 
